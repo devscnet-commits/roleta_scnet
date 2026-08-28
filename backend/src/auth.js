@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 export function signToken(admin) {
-  return jwt.sign({ sub: admin.id, email: admin.email }, JWT_SECRET, { expiresIn: '12h' });
+  return jwt.sign({ sub: admin.id, email: admin.email, role: admin.role || 'admin' }, JWT_SECRET, { expiresIn: '12h' });
 }
 
 export function requireAuth(req, res, next) {
@@ -16,4 +16,13 @@ export function requireAuth(req, res, next) {
   } catch {
     return res.status(401).json({ error: 'unauthorized' });
   }
+}
+
+export function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.admin?.role)) {
+      return res.status(403).json({ error: 'forbidden' });
+    }
+    next();
+  };
 }

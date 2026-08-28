@@ -42,7 +42,8 @@ npm run dev    # http://localhost:5173
 ```
 
 - Participante: `http://localhost:5173/c/feira-2026`
-- Admin: `http://localhost:5173/admin`
+- Admin: `http://localhost:5173/admin` (login: `admin@scnet.com.br` / `scnet2026`)
+- Consultor: `http://localhost:5173/consultor` (login: `consultor@scnet.com.br` / `consultor2026`)
 
 Em produção, gere o build com `npm run build` (pasta `frontend/dist`) e sirva
 por trás do mesmo domínio da API (ou configure `VITE_API_PROXY` / um proxy
@@ -72,10 +73,18 @@ reverso apontando `/api` e `/uploads` para o backend).
   retirada.
 - **Painel admin**: campanhas (uma por evento/feira, cada uma com sua própria
   URL/QR code e base de participantes isolada), textos e cores, roleta e
-  prêmios (com upload de vídeo), cidades atendidas, participantes (busca,
-  filtro por cidade e por resultado, ordenação, exportação CSV, marcar prêmio
-  como retirado, limpar base da campanha), painel com métricas e QR code para
-  impressão.
+  prêmios (com upload de vídeo para prêmios e para opções "sem prêmio"),
+  cidades atendidas, participantes (busca, filtro por cidade e por resultado,
+  ordenação, exportação CSV, marcar prêmio como retirado, limpar base da
+  campanha), painel com métricas, QR code para impressão e cadastro de
+  usuários (administradores e consultores).
+- **Consentimento (LGPD)**: checkbox obrigatório no formulário, com texto
+  configurável, antes de o participante poder girar a roleta.
+- **Área do consultor** (`/consultor`): login próprio, separado do admin.
+  Consultores só enxergam a lista de participantes (para marcar prêmios como
+  entregues) e o QR Code de cada campanha — não têm acesso a criar/editar
+  campanhas, prêmios, cidades, exportar CSV ou limpar a base. Administradores
+  criam contas de consultor na aba **Usuários** do painel admin.
 
 ## Upload de vídeo do prêmio
 

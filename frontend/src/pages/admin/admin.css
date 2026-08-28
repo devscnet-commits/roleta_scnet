@@ -45,6 +45,53 @@
   margin-top: 0;
 }
 
+.brand-login-screen {
+  --primary: #0057B8;
+  --secondary: #00B5E2;
+  --background: #FFFFFF;
+  --text: #0B1F3A;
+  --accent: #F5A623;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f2f4f7;
+  padding: 24px 16px;
+}
+
+.brand-login-card {
+  width: 100%;
+  max-width: 380px;
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px 26px;
+  box-shadow: 0 12px 36px rgba(11, 31, 58, 0.12);
+}
+
+.brand-badge {
+  color: var(--primary);
+}
+
+.brand-login-title {
+  font-family: 'Baloo 2', 'Inter', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.brand-login-title .accent {
+  color: var(--primary);
+}
+
+.brand-login-subtitle {
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.65;
+  margin: 0 0 24px;
+}
+
 .login-box {
   max-width: 360px;
   margin: 80px auto;

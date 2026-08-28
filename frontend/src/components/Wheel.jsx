@@ -1,5 +1,48 @@
 import { useEffect, useRef, useState } from 'react';
 
+function wrapLines(ctx, text, maxWidth, maxLines) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+
+  function pushHardBreak(word) {
+    let chunk = '';
+    for (const ch of word) {
+      const test = chunk + ch;
+      if (chunk && ctx.measureText(test).width > maxWidth) {
+        lines.push(chunk);
+        chunk = ch;
+      } else {
+        chunk = test;
+      }
+    }
+    return chunk;
+  }
+
+  for (const word of words) {
+    if (lines.length >= maxLines) break;
+    const test = current ? `${current} ${word}` : word;
+    if (ctx.measureText(test).width <= maxWidth) {
+      current = test;
+    } else {
+      if (current) lines.push(current);
+      current = ctx.measureText(word).width > maxWidth ? pushHardBreak(word) : word;
+    }
+  }
+  if (current && lines.length < maxLines) lines.push(current);
+  const usedWordCount = lines.join(' ').split(' ').length;
+  const truncated = usedWordCount < words.length || lines.length > maxLines;
+  const finalLines = lines.slice(0, maxLines);
+  if (truncated && finalLines.length) {
+    let last = finalLines[finalLines.length - 1];
+    while (last.length > 1 && ctx.measureText(`${last}…`).width > maxWidth) {
+      last = last.slice(0, -1);
+    }
+    finalLines[finalLines.length - 1] = `${last}…`;
+  }
+  return finalLines;
+}
+
 function drawWheel(canvas, segments) {
   const ctx = canvas.getContext('2d');
   const size = canvas.width;
@@ -26,14 +69,22 @@ function drawWheel(canvas, segments) {
     ctx.rotate(start + sliceAngle / 2);
     ctx.textAlign = 'right';
     ctx.fillStyle = '#fff';
-    ctx.font = `600 ${Math.max(10, radius * 0.09)}px sans-serif`;
-    const label = seg.title.length > 16 ? seg.title.slice(0, 15) + '…' : seg.title;
-    ctx.fillText(label, radius - 14, 4);
+
+    const maxTextWidth = radius - 22 - radius * 0.36;
+    const fontSize = Math.max(13, radius * 0.075);
+    ctx.font = `700 ${fontSize}px 'Baloo 2', sans-serif`;
+
+    const lines = ctx.measureText(seg.title).width <= maxTextWidth ? [seg.title] : wrapLines(ctx, seg.title, maxTextWidth, 2);
+    const lineHeight = fontSize * 1.05;
+    const startY = 4 - ((lines.length - 1) * lineHeight) / 2;
+    lines.forEach((line, li) => {
+      ctx.fillText(line, radius - 22, startY + li * lineHeight);
+    });
     ctx.restore();
   });
 }
 
-export default function Wheel({ segments, spinToId, spinToken, onSpinEnd }) {
+export default function Wheel({ segments, spinToId, spinToken, onSpinEnd, onSpinClick, spinLabel = 'GIRAR', spinDisabled }) {
   const canvasRef = useRef(null);
   const rotationRef = useRef(0);
   const [rotation, setRotation] = useState(0);
@@ -62,11 +113,16 @@ export default function Wheel({ segments, spinToId, spinToken, onSpinEnd }) {
       <div className="wheel-pointer" />
       <canvas
         ref={canvasRef}
-        width={280}
-        height={280}
+        width={480}
+        height={480}
         className="wheel-canvas"
         style={{ transform: `rotate(${rotation}deg)` }}
       />
+      {onSpinClick && (
+        <button type="button" className="wheel-center-btn" onClick={onSpinClick} disabled={spinDisabled}>
+          <span>{spinLabel}</span>
+        </button>
+      )}
     </div>
   );
 }

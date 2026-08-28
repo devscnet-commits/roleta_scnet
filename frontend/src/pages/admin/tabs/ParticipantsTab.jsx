@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../../api.js';
 
 export default function ParticipantsTab({ campaignId, campaign, notify }) {
+  const isAdmin = localStorage.getItem('admin_role') !== 'consultor';
   const customFields = campaign?.formConfig?.customFields || [];
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState('');
@@ -73,8 +74,12 @@ export default function ParticipantsTab({ campaignId, campaign, notify }) {
           <option value="no_prize">Não ganhou</option>
         </select>
         <button className="btn secondary" onClick={load}>Filtrar</button>
-        <button className="btn" onClick={exportCsv}>Exportar CSV</button>
-        <button className="btn danger" onClick={clearAll}>Limpar base</button>
+        {isAdmin && (
+          <>
+            <button className="btn" onClick={exportCsv}>Exportar CSV</button>
+            <button className="btn danger" onClick={clearAll}>Limpar base</button>
+          </>
+        )}
       </div>
 
       <table className="data-table">

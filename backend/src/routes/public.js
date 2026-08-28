@@ -37,7 +37,7 @@ router.post('/campaigns/:slug/participate', (req, res) => {
 
   const texts = JSON.parse(campaign.texts_json);
   const formConfig = JSON.parse(campaign.form_config_json);
-  const { name, cpf, phone, city, extraFields } = req.body || {};
+  const { name, cpf, phone, city, extraFields, consent } = req.body || {};
 
   if (formConfig.name?.required && !String(name || '').trim()) {
     return res.status(400).json({ status: 'error', message: 'Nome é obrigatório.' });
@@ -47,6 +47,9 @@ router.post('/campaigns/:slug/participate', (req, res) => {
   }
   if (formConfig.city?.required && !String(city || '').trim()) {
     return res.status(400).json({ status: 'error', message: 'Cidade é obrigatória.' });
+  }
+  if (!consent) {
+    return res.status(400).json({ status: 'error', message: 'É preciso aceitar o compartilhamento de dados para participar.' });
   }
 
   const customFields = Array.isArray(formConfig.customFields) ? formConfig.customFields : [];
@@ -97,8 +100,8 @@ router.post('/campaigns/:slug/participate', (req, res) => {
 
   db.prepare(
     `INSERT INTO participations
-      (campaign_id, name, cpf, cpf_masked, phone, city, city_eligible, result_type, prize_id, prize_title, redemption_code, extra_fields_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (campaign_id, name, cpf, cpf_masked, phone, city, city_eligible, result_type, prize_id, prize_title, redemption_code, extra_fields_json, consent_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
   ).run(
     campaign.id,
     String(name || '').trim(),
@@ -118,6 +121,8 @@ router.post('/campaigns/:slug/participate', (req, res) => {
     status: 'ok',
     result: chosen.type,
     segmentId: chosen.id,
+    videoUrl: chosen.video_url || null,
+    resultMessage: chosen.type === 'prize' ? '' : chosen.description || texts.loseSubtitle || '',
     prize:
       chosen.type === 'prize'
         ? {
@@ -132,6 +137,7 @@ router.post('/campaigns/:slug/participate', (req, res) => {
       winTitle: texts.winTitle,
       loseTitle: texts.loseTitle,
       loseSubtitle: texts.loseSubtitle,
+      standLocation: texts.standLocation,
     },
   });
 });
