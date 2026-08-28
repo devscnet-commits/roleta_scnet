@@ -213,7 +213,7 @@ export default function CampaignPage() {
         <div className="card">
           {drawResult.videoUrl && (
             <div className="video-stage">
-              <video src={drawResult.videoUrl} autoPlay muted playsInline loop controls />
+              <video src={drawResult.videoUrl} autoPlay muted playsInline loop />
             </div>
           )}
 
