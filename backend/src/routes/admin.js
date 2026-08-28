@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import db from '../db.js';
 import { signToken, requireAuth } from '../auth.js';
 import { normalizeCity } from '../cpf.js';
+import { uploadVideo } from '../uploads.js';
 
 const router = Router();
 
@@ -16,6 +17,22 @@ router.post('/login', (req, res) => {
 });
 
 router.use(requireAuth);
+
+router.post('/uploads/video', (req, res) => {
+  uploadVideo.single('file')(req, res, (err) => {
+    if (err) {
+      const message =
+        err.message === 'invalid_file_type'
+          ? 'Formato inválido. Envie um vídeo MP4, WebM, OGG ou MOV.'
+          : err.code === 'LIMIT_FILE_SIZE'
+            ? 'Vídeo muito grande. Limite de 50MB.'
+            : 'Falha ao enviar o vídeo.';
+      return res.status(400).json({ error: 'upload_failed', message });
+    }
+    if (!req.file) return res.status(400).json({ error: 'no_file', message: 'Nenhum arquivo enviado.' });
+    res.status(201).json({ url: `/uploads/${req.file.filename}` });
+  });
+});
 
 // ---- Campaigns ----
 router.get('/campaigns', (req, res) => {

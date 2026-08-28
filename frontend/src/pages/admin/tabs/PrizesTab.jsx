@@ -22,6 +22,8 @@ export default function PrizesTab({ campaignId, notify }) {
   const [prizes, setPrizes] = useState([]);
   const [cities, setCities] = useState([]);
   const [draft, setDraft] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   function load() {
     api.get(`/admin/campaigns/${campaignId}/prizes`).then(setPrizes);
@@ -30,6 +32,29 @@ export default function PrizesTab({ campaignId, notify }) {
   useEffect(load, [campaignId]);
 
   const totalWeight = prizes.filter((p) => p.active).reduce((s, p) => s + p.probability_weight, 0);
+
+  async function handleVideoUpload(file) {
+    if (!file) return;
+    setUploadError('');
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const token = localStorage.getItem('admin_token');
+      const res = await fetch('/api/admin/uploads/video', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message || 'Falha ao enviar o vídeo.');
+      setDraft((d) => ({ ...d, videoUrl: body.url }));
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function saveDraft() {
     if (draft.id) {
@@ -138,8 +163,24 @@ export default function PrizesTab({ campaignId, notify }) {
                   </select>
                 </div>
                 <div className="field">
-                  <label>Vídeo exibido ao ganhar (URL, opcional)</label>
-                  <input value={draft.videoUrl} onChange={(e) => setDraft({ ...draft, videoUrl: e.target.value })} placeholder="https://.../mascote.mp4" />
+                  <label>Vídeo exibido ao ganhar</label>
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                    onChange={(e) => handleVideoUpload(e.target.files?.[0])}
+                    disabled={uploading}
+                  />
+                  {uploading && <p style={{ fontSize: 12, color: '#666', margin: '4px 0' }}>Enviando vídeo...</p>}
+                  {uploadError && <p style={{ fontSize: 12, color: '#a30000', margin: '4px 0' }}>{uploadError}</p>}
+                  <input
+                    style={{ marginTop: 6 }}
+                    value={draft.videoUrl}
+                    onChange={(e) => setDraft({ ...draft, videoUrl: e.target.value })}
+                    placeholder="ou cole uma URL de vídeo (https://.../mascote.mp4)"
+                  />
+                  {draft.videoUrl && (
+                    <video src={draft.videoUrl} controls style={{ width: '100%', marginTop: 8, borderRadius: 8 }} />
+                  )}
                 </div>
               </div>
               {draft.cityScope === 'selected' && (
