@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS admins (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'admin', -- admin | consultor
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -76,6 +77,7 @@ CREATE TABLE IF NOT EXISTS participations (
   redemption_code TEXT,
   redeemed_at TEXT,
   extra_fields_json TEXT NOT NULL DEFAULT '{}',
+  consent_at TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(campaign_id, cpf)
 );
@@ -84,11 +86,17 @@ CREATE INDEX IF NOT EXISTS idx_participations_campaign ON participations(campaig
 CREATE INDEX IF NOT EXISTS idx_participations_city ON participations(city);
 `);
 
-// Migration for databases created before extra_fields_json existed.
-try {
-  db.exec("ALTER TABLE participations ADD COLUMN extra_fields_json TEXT NOT NULL DEFAULT '{}'");
-} catch {
-  // column already exists
+// Migrations for databases created before these columns existed.
+for (const stmt of [
+  "ALTER TABLE participations ADD COLUMN extra_fields_json TEXT NOT NULL DEFAULT '{}'",
+  'ALTER TABLE participations ADD COLUMN consent_at TEXT',
+  "ALTER TABLE admins ADD COLUMN role TEXT NOT NULL DEFAULT 'admin'",
+]) {
+  try {
+    db.exec(stmt);
+  } catch {
+    // column already exists
+  }
 }
 
 export function runInTransaction(fn) {

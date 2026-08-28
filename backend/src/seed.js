@@ -10,8 +10,19 @@ if (existing) {
   console.log(`Admin already exists: ${email}`);
 } else {
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare('INSERT INTO admins (email, password_hash) VALUES (?, ?)').run(email, hash);
+  db.prepare("INSERT INTO admins (email, password_hash, role) VALUES (?, ?, 'admin')").run(email, hash);
   console.log(`Admin created: ${email} / ${password}`);
+}
+
+const consultorEmail = process.env.CONSULTOR_EMAIL || 'consultor@scnet.com.br';
+const consultorPassword = process.env.CONSULTOR_PASSWORD || 'consultor2026';
+const existingConsultor = db.prepare('SELECT id FROM admins WHERE email = ?').get(consultorEmail);
+if (existingConsultor) {
+  console.log(`Consultor already exists: ${consultorEmail}`);
+} else {
+  const hash = bcrypt.hashSync(consultorPassword, 10);
+  db.prepare("INSERT INTO admins (email, password_hash, role) VALUES (?, ?, 'consultor')").run(consultorEmail, hash);
+  console.log(`Consultor created: ${consultorEmail} / ${consultorPassword}`);
 }
 
 const campaignCount = db.prepare('SELECT COUNT(*) c FROM campaigns').get().c;
@@ -32,14 +43,20 @@ if (campaignCount === 0) {
         accent: '#F5A623',
       }),
       JSON.stringify({
-        welcome: 'Gire a roleta SCNET e concorra a prêmios!',
+        badge: 'STAND OFICIAL SCNET',
+        welcome: 'Identifique-se com seus dados rápidos para girar a roleta oficial e concorrer aos prêmios exclusivos!',
         formTitle: 'Preencha seus dados para participar',
-        submitButton: 'Continuar',
+        submitButton: 'Avançar para a Roleta',
+        consentText: 'Aceito compartilhar meus dados e participar do sorteio.',
+        trustBadge: 'Giro individual validado no Stand SCNET',
+        spinGreeting: 'Boa Sorte, {name}!',
+        spinInstruction: 'Toque no botão central GIRAR para acionar a roleta oficial SCNET.',
         spinButton: 'Girar a roleta',
         winTitle: 'Parabéns, você ganhou!',
         loseTitle: 'Não foi dessa vez!',
         loseSubtitle: 'Obrigado por participar. Fique de olho nas próximas promoções da SCNET.',
         redeemInstructions: 'Dirija-se ao estande da SCNET e apresente este código para retirar seu prêmio.',
+        standLocation: 'Stand Principal SCNET',
         cpfInvalidMessage: 'CPF inválido. Confira os números e tente novamente.',
         alreadyParticipatedMessage: 'Este CPF já participou desta promoção.',
       }),

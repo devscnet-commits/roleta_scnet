@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import db from '../db.js';
-import { signToken, requireAuth } from '../auth.js';
+import { signToken, requireAuth, requireRole } from '../auth.js';
 import { normalizeCity } from '../cpf.js';
 import { uploadVideo } from '../uploads.js';
 
 const router = Router();
+const adminOnly = requireRole('admin');
 
 router.post('/login', (req, res) => {
   const { email, password } = req.body || {};
@@ -13,12 +14,44 @@ router.post('/login', (req, res) => {
   if (!admin || !bcrypt.compareSync(String(password || ''), admin.password_hash)) {
     return res.status(401).json({ error: 'invalid_credentials' });
   }
-  res.json({ token: signToken(admin), email: admin.email });
+  res.json({ token: signToken(admin), email: admin.email, role: admin.role });
 });
 
 router.use(requireAuth);
 
-router.post('/uploads/video', (req, res) => {
+// ---- Users ----
+router.get('/users', adminOnly, (req, res) => {
+  const users = db.prepare('SELECT id, email, role, created_at FROM admins ORDER BY created_at DESC').all();
+  res.json(users);
+});
+
+router.post('/users', adminOnly, (req, res) => {
+  const { email, password, role } = req.body || {};
+  if (!String(email || '').trim() || !String(password || '').trim()) {
+    return res.status(400).json({ error: 'email_and_password_required' });
+  }
+  const userRole = role === 'consultor' ? 'consultor' : 'admin';
+  try {
+    const hash = bcrypt.hashSync(String(password), 10);
+    const info = db
+      .prepare('INSERT INTO admins (email, password_hash, role) VALUES (?, ?, ?)')
+      .run(String(email).trim(), hash, userRole);
+    res.status(201).json({ id: info.lastInsertRowid, email: String(email).trim(), role: userRole });
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) return res.status(409).json({ error: 'email_taken' });
+    throw e;
+  }
+});
+
+router.delete('/users/:id', adminOnly, (req, res) => {
+  if (Number(req.params.id) === req.admin.sub) {
+    return res.status(400).json({ error: 'cannot_delete_self' });
+  }
+  db.prepare('DELETE FROM admins WHERE id = ?').run(req.params.id);
+  res.status(204).end();
+});
+
+router.post('/uploads/video', adminOnly, (req, res) => {
   uploadVideo.single('file')(req, res, (err) => {
     if (err) {
       const message =
@@ -40,7 +73,7 @@ router.get('/campaigns', (req, res) => {
   res.json(campaigns.map(serializeCampaign));
 });
 
-router.post('/campaigns', (req, res) => {
+router.post('/campaigns', adminOnly, (req, res) => {
   const { slug, name } = req.body || {};
   if (!slug || !name) return res.status(400).json({ error: 'slug_and_name_required' });
   try {
@@ -54,14 +87,20 @@ router.post('/campaigns', (req, res) => {
         String(name).trim(),
         JSON.stringify({ primary: '#0057B8', secondary: '#00B5E2', background: '#FFFFFF', text: '#0B1F3A', accent: '#F5A623' }),
         JSON.stringify({
-          welcome: 'Gire a roleta e concorra a prêmios!',
+          badge: 'STAND OFICIAL',
+          welcome: 'Identifique-se com seus dados rápidos para girar a roleta oficial e concorrer aos prêmios exclusivos!',
           formTitle: 'Preencha seus dados para participar',
-          submitButton: 'Continuar',
+          submitButton: 'Avançar para a Roleta',
+          consentText: 'Aceito compartilhar meus dados e participar do sorteio.',
+          trustBadge: 'Giro individual validado no Stand',
+          spinGreeting: 'Boa Sorte, {name}!',
+          spinInstruction: 'Toque no botão central GIRAR para acionar a roleta oficial.',
           spinButton: 'Girar a roleta',
           winTitle: 'Parabéns, você ganhou!',
           loseTitle: 'Não foi dessa vez!',
           loseSubtitle: 'Obrigado por participar.',
           redeemInstructions: 'Dirija-se ao estande para retirar seu prêmio.',
+          standLocation: 'Stand Principal',
           cpfInvalidMessage: 'CPF inválido. Confira os números e tente novamente.',
           alreadyParticipatedMessage: 'Este CPF já participou desta promoção.',
         }),
@@ -86,7 +125,7 @@ router.get('/campaigns/:id', (req, res) => {
   res.json(serializeCampaign(campaign));
 });
 
-router.put('/campaigns/:id', (req, res) => {
+router.put('/campaigns/:id', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   const { name, status, colors, texts, formConfig, defaultCityEligible } = req.body || {};
@@ -105,13 +144,13 @@ router.put('/campaigns/:id', (req, res) => {
 });
 
 // ---- Cities ----
-router.get('/campaigns/:id/cities', (req, res) => {
+router.get('/campaigns/:id/cities', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   res.json(db.prepare('SELECT * FROM cities WHERE campaign_id = ? ORDER BY name ASC').all(campaign.id));
 });
 
-router.post('/campaigns/:id/cities', (req, res) => {
+router.post('/campaigns/:id/cities', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   const { name, eligible } = req.body || {};
@@ -127,7 +166,7 @@ router.post('/campaigns/:id/cities', (req, res) => {
   }
 });
 
-router.put('/campaigns/:id/cities/:cityId', (req, res) => {
+router.put('/campaigns/:id/cities/:cityId', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   const { name, eligible } = req.body || {};
@@ -143,7 +182,7 @@ router.put('/campaigns/:id/cities/:cityId', (req, res) => {
   res.json(db.prepare('SELECT * FROM cities WHERE id = ?').get(city.id));
 });
 
-router.delete('/campaigns/:id/cities/:cityId', (req, res) => {
+router.delete('/campaigns/:id/cities/:cityId', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   db.prepare('DELETE FROM cities WHERE id = ? AND campaign_id = ?').run(req.params.cityId, campaign.id);
@@ -151,7 +190,7 @@ router.delete('/campaigns/:id/cities/:cityId', (req, res) => {
 });
 
 // ---- Prizes ----
-router.get('/campaigns/:id/prizes', (req, res) => {
+router.get('/campaigns/:id/prizes', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   const prizes = db.prepare('SELECT * FROM prizes WHERE campaign_id = ? ORDER BY order_index ASC').all(campaign.id);
@@ -165,7 +204,7 @@ router.get('/campaigns/:id/prizes', (req, res) => {
   );
 });
 
-router.post('/campaigns/:id/prizes', (req, res) => {
+router.post('/campaigns/:id/prizes', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   const p = req.body || {};
@@ -193,7 +232,7 @@ router.post('/campaigns/:id/prizes', (req, res) => {
   res.status(201).json(getPrizeWithCities(info.lastInsertRowid));
 });
 
-router.put('/campaigns/:id/prizes/:prizeId', (req, res) => {
+router.put('/campaigns/:id/prizes/:prizeId', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   const prize = db.prepare('SELECT * FROM prizes WHERE id = ? AND campaign_id = ?').get(req.params.prizeId, campaign.id);
@@ -228,7 +267,7 @@ router.put('/campaigns/:id/prizes/:prizeId', (req, res) => {
   res.json(getPrizeWithCities(prize.id));
 });
 
-router.delete('/campaigns/:id/prizes/:prizeId', (req, res) => {
+router.delete('/campaigns/:id/prizes/:prizeId', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   db.prepare('DELETE FROM prizes WHERE id = ? AND campaign_id = ?').run(req.params.prizeId, campaign.id);
@@ -288,7 +327,7 @@ router.get('/campaigns/:id/participants', (req, res) => {
   );
 });
 
-router.get('/campaigns/:id/participants/export.csv', (req, res) => {
+router.get('/campaigns/:id/participants/export.csv', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   const rows = db
@@ -346,7 +385,7 @@ router.post('/campaigns/:id/participants/:pid/redeem', (req, res) => {
   res.json({ ok: true });
 });
 
-router.delete('/campaigns/:id/participants', (req, res) => {
+router.delete('/campaigns/:id/participants', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   if (req.query.confirm !== 'yes') {
@@ -356,7 +395,7 @@ router.delete('/campaigns/:id/participants', (req, res) => {
   res.json({ deleted: info.changes });
 });
 
-router.get('/campaigns/:id/dashboard', (req, res) => {
+router.get('/campaigns/:id/dashboard', adminOnly, (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   const total = db.prepare('SELECT COUNT(*) c FROM participations WHERE campaign_id = ?').get(campaign.id).c;

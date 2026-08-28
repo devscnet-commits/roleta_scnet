@@ -2,14 +2,20 @@ import { useState } from 'react';
 import { api } from '../../../api.js';
 
 const TEXT_FIELDS = [
+  ['badge', 'Selo/etiqueta no topo do formulário (ex: STAND OFICIAL SCNET)'],
   ['welcome', 'Mensagem de boas-vindas'],
   ['formTitle', 'Título do formulário'],
   ['submitButton', 'Texto do botão de envio do formulário'],
-  ['spinButton', 'Texto do botão / título da roleta'],
+  ['trustBadge', 'Texto de confiança acima do consentimento (ex: Giro individual validado no Stand)'],
+  ['consentText', 'Texto do checkbox de consentimento (LGPD)'],
+  ['spinGreeting', 'Saudação na tela da roleta — use {name} para inserir o nome digitado'],
+  ['spinInstruction', 'Instrução na tela da roleta'],
+  ['spinButton', 'Texto do botão de girar'],
   ['winTitle', 'Título ao ganhar'],
   ['loseTitle', 'Título ao não ganhar'],
-  ['loseSubtitle', 'Mensagem ao não ganhar'],
+  ['loseSubtitle', 'Mensagem padrão ao não ganhar (usada se a opção não tiver mensagem própria)'],
   ['redeemInstructions', 'Instrução padrão de retirada do prêmio'],
+  ['standLocation', 'Localização do stand (aparece na tela de prêmio)'],
   ['cpfInvalidMessage', 'Mensagem de CPF inválido'],
   ['alreadyParticipatedMessage', 'Mensagem de CPF já participante'],
 ];

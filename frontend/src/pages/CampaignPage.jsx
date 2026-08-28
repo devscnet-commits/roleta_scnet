@@ -21,14 +21,14 @@ export default function CampaignPage() {
   const { slug } = useParams();
   const [campaign, setCampaign] = useState(null);
   const [loadError, setLoadError] = useState(null);
-  const [step, setStep] = useState('form'); // form | spinning | result
+  const [step, setStep] = useState('form'); // form | ready | spinning | result
   const [form, setForm] = useState({ name: '', cpf: '', phone: '', city: '' });
   const [extraFields, setExtraFields] = useState({});
+  const [consent, setConsent] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [drawResult, setDrawResult] = useState(null);
   const [spinToken, setSpinToken] = useState(0);
-  const [showResult, setShowResult] = useState(false);
 
   useEffect(() => {
     api
@@ -69,18 +69,20 @@ export default function CampaignPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitError('');
+    if (!consent) {
+      setSubmitError('É preciso aceitar o compartilhamento de dados para participar.');
+      return;
+    }
     setSubmitting(true);
     try {
-      const res = await api.post(`/public/campaigns/${slug}/participate`, { ...form, extraFields });
-      if (res.status === 'invalid_cpf' || res.status === 'already_participated') {
+      const res = await api.post(`/public/campaigns/${slug}/participate`, { ...form, extraFields, consent });
+      if (res.status === 'invalid_cpf' || res.status === 'already_participated' || res.status === 'error') {
         setSubmitError(res.message);
         setSubmitting(false);
         return;
       }
       setDrawResult(res);
-      setStep('spinning');
-      setShowResult(false);
-      setTimeout(() => setSpinToken((t) => t + 1), 300);
+      setStep('ready');
     } catch (err) {
       setSubmitError(err.message || 'Não foi possível enviar. Tente novamente.');
     } finally {
@@ -88,22 +90,36 @@ export default function CampaignPage() {
     }
   }
 
+  function handleSpinTrigger() {
+    if (step !== 'ready') return;
+    setStep('spinning');
+    setSpinToken((t) => t + 1);
+  }
+
   function handleSpinEnd() {
     setStep('result');
-    setShowResult(true);
   }
+
+  const greetingTemplate = campaign.texts.spinGreeting || 'Boa Sorte, {name}!';
+  const greetingParts = greetingTemplate.split('{name}');
+  const participantName = form.name.trim() || 'participante';
 
   return (
     <div className="campaign-screen" style={themeStyle}>
       {step === 'form' && (
         <div className="card">
+          {campaign.texts.badge && (
+            <div className="badge-pill-wrap">
+              <span className="badge-pill">
+                <span className="badge-dot" />
+                {campaign.texts.badge}
+              </span>
+            </div>
+          )}
           <h1>{campaign.name}</h1>
           <p className="subtitle">{campaign.texts.welcome}</p>
           {submitError && <div className="error-msg">{submitError}</div>}
           <form onSubmit={handleSubmit}>
-            <p className="subtitle" style={{ marginBottom: 12, fontWeight: 700 }}>
-              {campaign.texts.formTitle}
-            </p>
             {campaign.formConfig.name?.required !== undefined && (
               <div className="field">
                 <label>Nome completo</label>
@@ -111,10 +127,19 @@ export default function CampaignPage() {
                   required={campaign.formConfig.name?.required}
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Seu nome"
+                  placeholder="Seu nome completo"
                 />
               </div>
             )}
+            <div className="field">
+              <label>Cidade</label>
+              <input
+                required={campaign.formConfig.city?.required}
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                placeholder="Ex: Rio do Sul, Lages, Blumenau..."
+              />
+            </div>
             <div className="field">
               <label>CPF</label>
               <input
@@ -124,6 +149,7 @@ export default function CampaignPage() {
                 onChange={(e) => setForm({ ...form, cpf: formatCpf(e.target.value) })}
                 placeholder="000.000.000-00"
               />
+              <p className="field-hint">Identificação para validação e entrega presencial do prêmio no stand.</p>
             </div>
             <div className="field">
               <label>Telefone</label>
@@ -133,15 +159,6 @@ export default function CampaignPage() {
                 inputMode="numeric"
                 onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })}
                 placeholder="(00) 00000-0000"
-              />
-            </div>
-            <div className="field">
-              <label>Cidade onde reside</label>
-              <input
-                required={campaign.formConfig.city?.required}
-                value={form.city}
-                onChange={(e) => setForm({ ...form, city: e.target.value })}
-                placeholder="Sua cidade"
               />
             </div>
             {(campaign.formConfig.customFields || []).map((f) => (
@@ -155,36 +172,69 @@ export default function CampaignPage() {
                 />
               </div>
             ))}
+
+            {campaign.texts.trustBadge && <p className="trust-row">🛡️ {campaign.texts.trustBadge}</p>}
+            <label className="consent-row">
+              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
+              <span>{campaign.texts.consentText || 'Aceito compartilhar meus dados e participar do sorteio.'}</span>
+            </label>
+
             <button className="btn-primary" type="submit" disabled={submitting}>
-              {submitting ? 'Enviando...' : campaign.texts.submitButton}
+              {submitting ? 'Enviando...' : campaign.texts.submitButton || 'Avançar para a Roleta'}
             </button>
           </form>
         </div>
       )}
 
-      {(step === 'spinning' || step === 'result') && drawResult && (
+      {(step === 'ready' || step === 'spinning') && drawResult && (
         <div className="card">
-          <h1>{campaign.texts.spinButton}</h1>
-          <Wheel segments={campaign.segments} spinToId={drawResult.segmentId} spinToken={spinToken} onSpinEnd={handleSpinEnd} />
+          <p className="spin-greeting">
+            {greetingParts[0]}
+            {greetingParts.length > 1 && <span className="accent">{participantName}</span>}
+            {greetingParts[1]}
+          </p>
+          <p className="spin-instruction">{campaign.texts.spinInstruction}</p>
+          <Wheel
+            segments={campaign.segments}
+            spinToId={drawResult.segmentId}
+            spinToken={spinToken}
+            onSpinEnd={handleSpinEnd}
+            onSpinClick={handleSpinTrigger}
+            spinLabel={step === 'spinning' ? '...' : 'GIRAR'}
+            spinDisabled={step === 'spinning'}
+          />
+          <button className="spin-cta" onClick={handleSpinTrigger} disabled={step === 'spinning'}>
+            {step === 'spinning' ? 'Girando...' : campaign.texts.spinButton || 'Girar a roleta'}
+          </button>
+        </div>
+      )}
 
-          {showResult && drawResult.result === 'prize' && (
+      {step === 'result' && drawResult && (
+        <div className="card">
+          {drawResult.videoUrl && (
+            <div className="video-stage">
+              <video src={drawResult.videoUrl} autoPlay muted playsInline loop controls />
+            </div>
+          )}
+
+          {drawResult.result === 'prize' && (
             <>
-              {drawResult.prize.videoUrl && (
-                <video className="result-video" src={drawResult.prize.videoUrl} autoPlay playsInline muted={false} controls />
-              )}
               <p className="result-title win">{campaign.texts.winTitle}</p>
-              <p className="subtitle" style={{ fontWeight: 700 }}>{drawResult.prize.title}</p>
-              {drawResult.prize.redemptionCode && (
-                <div className="result-code">{drawResult.prize.redemptionCode}</div>
-              )}
-              <p className="subtitle">{drawResult.prize.redeemMessage}</p>
+              <p className="subtitle" style={{ fontWeight: 700 }}>
+                {drawResult.prize.title}
+              </p>
+              {drawResult.prize.redemptionCode && <div className="result-code">{drawResult.prize.redemptionCode}</div>}
+              <div className="result-box">
+                <p>{drawResult.prize.redeemMessage}</p>
+              </div>
+              {campaign.texts.standLocation && <p className="result-location">📍 {campaign.texts.standLocation}</p>}
             </>
           )}
 
-          {showResult && drawResult.result === 'no_prize' && (
+          {drawResult.result === 'no_prize' && (
             <>
               <p className="result-title lose">{campaign.texts.loseTitle}</p>
-              <p className="subtitle">{campaign.texts.loseSubtitle}</p>
+              <p className="subtitle">{drawResult.resultMessage || campaign.texts.loseSubtitle}</p>
             </>
           )}
         </div>

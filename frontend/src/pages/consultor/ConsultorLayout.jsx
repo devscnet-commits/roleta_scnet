@@ -1,32 +1,31 @@
 import { useEffect } from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
-import './admin.css';
+import { Outlet, useNavigate } from 'react-router-dom';
+import '../admin/admin.css';
 
-export default function AdminLayout() {
+export default function ConsultorLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!localStorage.getItem('admin_token')) {
-      navigate('/admin/login');
+      navigate('/consultor/login');
       return;
     }
-    if (localStorage.getItem('admin_role') === 'consultor') {
-      navigate('/consultor');
+    if (localStorage.getItem('admin_role') !== 'consultor') {
+      navigate('/admin');
     }
   }, [navigate]);
 
   function logout() {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_role');
-    navigate('/admin/login');
+    navigate('/consultor/login');
   }
 
   return (
     <div className="admin-shell">
       <div className="admin-sidebar">
         <h2>Roleta SCNET</h2>
-        <Link to="/admin">Campanhas</Link>
-        <Link to="/admin/usuarios">Usuários</Link>
+        <span style={{ color: '#8ea2c4', fontSize: 12, marginBottom: 8, display: 'block' }}>Área do consultor</span>
         <button onClick={logout}>Sair</button>
       </div>
       <div className="admin-main">

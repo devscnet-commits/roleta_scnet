@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
-import './admin.css';
+import '../admin/admin.css';
 
-export default function AdminLogin() {
+export default function ConsultorLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -14,9 +14,13 @@ export default function AdminLogin() {
     setError('');
     try {
       const res = await api.post('/admin/login', { email, password });
+      if (res.role !== 'consultor') {
+        setError('Este usuário não tem perfil de consultor.');
+        return;
+      }
       localStorage.setItem('admin_token', res.token);
-      localStorage.setItem('admin_role', res.role || 'admin');
-      navigate(res.role === 'consultor' ? '/consultor' : '/admin');
+      localStorage.setItem('admin_role', res.role);
+      navigate('/consultor');
     } catch (err) {
       setError('E-mail ou senha inválidos.');
     }
@@ -28,13 +32,13 @@ export default function AdminLogin() {
         <div className="badge-pill-wrap">
           <span className="badge-pill brand-badge">
             <span className="badge-dot" />
-            PAINEL ADMINISTRATIVO
+            ÁREA DO CONSULTOR
           </span>
         </div>
         <h1 className="brand-login-title">
           Roleta <span className="accent">SCNET</span>
         </h1>
-        <p className="brand-login-subtitle">Entre para configurar suas campanhas</p>
+        <p className="brand-login-subtitle">Entre para conferir participantes e entregar prêmios</p>
         {error && <div className="error-msg">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="field">

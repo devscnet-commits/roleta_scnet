@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../../api.js';
 
+const COLOR_PRESETS = ['#0057B8', '#00B5E2', '#0B1F3A', '#1E3A8A', '#F5A623', '#FFC72C'];
+
 function emptyPrize(orderIndex) {
   return {
     type: 'prize',
@@ -121,13 +123,36 @@ export default function PrizesTab({ campaignId, notify }) {
             <div className="field">
               <label>Cor da fatia</label>
               <input type="color" value={draft.color} onChange={(e) => setDraft({ ...draft, color: e.target.value })} />
+              <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                {COLOR_PRESETS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    title="Sugestão de cor SCNET"
+                    onClick={() => setDraft({ ...draft, color: c })}
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      background: c,
+                      border: draft.color === c ? '2px solid #333' : '1px solid #ccc',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
           <div className="form-row">
             <div className="field">
-              <label>Descrição / detalhe interno</label>
-              <input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+              <label>{draft.type === 'prize' ? 'Descrição (aparece na tela de vitória)' : 'Mensagem exibida nesse resultado'}</label>
+              <input
+                value={draft.description}
+                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                placeholder={draft.type === 'prize' ? '' : 'Ex: Não foi dessa vez, mas visite nosso stand!'}
+              />
             </div>
             <div className="field">
               <label>Peso / probabilidade relativa</label>
@@ -162,26 +187,6 @@ export default function PrizesTab({ campaignId, notify }) {
                     <option value="selected">Somente cidades selecionadas abaixo</option>
                   </select>
                 </div>
-                <div className="field">
-                  <label>Vídeo exibido ao ganhar</label>
-                  <input
-                    type="file"
-                    accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                    onChange={(e) => handleVideoUpload(e.target.files?.[0])}
-                    disabled={uploading}
-                  />
-                  {uploading && <p style={{ fontSize: 12, color: '#666', margin: '4px 0' }}>Enviando vídeo...</p>}
-                  {uploadError && <p style={{ fontSize: 12, color: '#a30000', margin: '4px 0' }}>{uploadError}</p>}
-                  <input
-                    style={{ marginTop: 6 }}
-                    value={draft.videoUrl}
-                    onChange={(e) => setDraft({ ...draft, videoUrl: e.target.value })}
-                    placeholder="ou cole uma URL de vídeo (https://.../mascote.mp4)"
-                  />
-                  {draft.videoUrl && (
-                    <video src={draft.videoUrl} controls style={{ width: '100%', marginTop: 8, borderRadius: 8 }} />
-                  )}
-                </div>
               </div>
               {draft.cityScope === 'selected' && (
                 <div className="field" style={{ marginBottom: 12 }}>
@@ -205,11 +210,36 @@ export default function PrizesTab({ campaignId, notify }) {
                   </div>
                 </div>
               )}
-              <div className="field">
-                <label>Mensagem de retirada do prêmio</label>
-                <input value={draft.redeemMessage} onChange={(e) => setDraft({ ...draft, redeemMessage: e.target.value })} />
-              </div>
             </>
+          )}
+
+          <div className="form-row">
+            <div className="field">
+              <label>{draft.type === 'prize' ? 'Vídeo exibido ao ganhar' : 'Vídeo exibido nesse resultado (opcional)'}</label>
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                onChange={(e) => handleVideoUpload(e.target.files?.[0])}
+                disabled={uploading}
+              />
+              {uploading && <p style={{ fontSize: 12, color: '#666', margin: '4px 0' }}>Enviando vídeo...</p>}
+              {uploadError && <p style={{ fontSize: 12, color: '#a30000', margin: '4px 0' }}>{uploadError}</p>}
+              <input
+                style={{ marginTop: 6 }}
+                value={draft.videoUrl}
+                onChange={(e) => setDraft({ ...draft, videoUrl: e.target.value })}
+                placeholder="ou cole uma URL de vídeo (https://.../mascote.mp4)"
+              />
+              {draft.videoUrl && (
+                <video src={draft.videoUrl} controls muted playsInline style={{ width: '100%', marginTop: 8, borderRadius: 8 }} />
+              )}
+            </div>
+          </div>
+          {draft.type === 'prize' && (
+            <div className="field">
+              <label>Mensagem de retirada do prêmio</label>
+              <input value={draft.redeemMessage} onChange={(e) => setDraft({ ...draft, redeemMessage: e.target.value })} />
+            </div>
           )}
 
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '10px 0' }}>

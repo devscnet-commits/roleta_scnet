@@ -6,8 +6,10 @@ async function request(path, options = {}) {
   if (token && path.startsWith('/admin')) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(BASE + path, { ...options, headers });
   if (res.status === 401 && path.startsWith('/admin')) {
+    const role = localStorage.getItem('admin_role');
     localStorage.removeItem('admin_token');
-    window.location.href = '/admin/login';
+    localStorage.removeItem('admin_role');
+    window.location.href = role === 'consultor' ? '/consultor/login' : '/admin/login';
     throw new Error('unauthorized');
   }
   if (!res.ok && res.status !== 200) {

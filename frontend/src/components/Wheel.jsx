@@ -26,14 +26,14 @@ function drawWheel(canvas, segments) {
     ctx.rotate(start + sliceAngle / 2);
     ctx.textAlign = 'right';
     ctx.fillStyle = '#fff';
-    ctx.font = `600 ${Math.max(10, radius * 0.09)}px sans-serif`;
+    ctx.font = `700 ${Math.max(11, radius * 0.085)}px 'Baloo 2', sans-serif`;
     const label = seg.title.length > 16 ? seg.title.slice(0, 15) + '…' : seg.title;
-    ctx.fillText(label, radius - 14, 4);
+    ctx.fillText(label, radius - 22, 4);
     ctx.restore();
   });
 }
 
-export default function Wheel({ segments, spinToId, spinToken, onSpinEnd }) {
+export default function Wheel({ segments, spinToId, spinToken, onSpinEnd, onSpinClick, spinLabel = 'GIRAR', spinDisabled }) {
   const canvasRef = useRef(null);
   const rotationRef = useRef(0);
   const [rotation, setRotation] = useState(0);
@@ -62,11 +62,16 @@ export default function Wheel({ segments, spinToId, spinToken, onSpinEnd }) {
       <div className="wheel-pointer" />
       <canvas
         ref={canvasRef}
-        width={280}
-        height={280}
+        width={480}
+        height={480}
         className="wheel-canvas"
         style={{ transform: `rotate(${rotation}deg)` }}
       />
+      {onSpinClick && (
+        <button type="button" className="wheel-center-btn" onClick={onSpinClick} disabled={spinDisabled}>
+          <span>{spinLabel}</span>
+        </button>
+      )}
     </div>
   );
 }
