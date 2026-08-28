@@ -247,7 +247,9 @@ export default function PrizesTab({ campaignId, notify }) {
             Ativa (aparece na roleta)
           </label>
 
-          <button className="btn" onClick={saveDraft}>Salvar</button>{' '}
+          <button className="btn" onClick={saveDraft} disabled={uploading}>
+            {uploading ? 'Aguarde o vídeo terminar de enviar...' : 'Salvar'}
+          </button>{' '}
           <button className="btn secondary" onClick={() => setDraft(null)}>Cancelar</button>
         </div>
       )}

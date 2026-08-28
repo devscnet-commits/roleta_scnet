@@ -26,8 +26,21 @@ function drawWheel(canvas, segments) {
     ctx.rotate(start + sliceAngle / 2);
     ctx.textAlign = 'right';
     ctx.fillStyle = '#fff';
-    ctx.font = `700 ${Math.max(11, radius * 0.085)}px 'Baloo 2', sans-serif`;
-    const label = seg.title.length > 16 ? seg.title.slice(0, 15) + '…' : seg.title;
+
+    const maxTextWidth = radius - 22 - radius * 0.36;
+    let fontSize = Math.max(11, radius * 0.085);
+    ctx.font = `700 ${fontSize}px 'Baloo 2', sans-serif`;
+    while (fontSize > 9 && ctx.measureText(seg.title).width > maxTextWidth) {
+      fontSize -= 1;
+      ctx.font = `700 ${fontSize}px 'Baloo 2', sans-serif`;
+    }
+    let label = seg.title;
+    if (ctx.measureText(label).width > maxTextWidth) {
+      while (label.length > 3 && ctx.measureText(label + '…').width > maxTextWidth) {
+        label = label.slice(0, -1);
+      }
+      label += '…';
+    }
     ctx.fillText(label, radius - 22, 4);
     ctx.restore();
   });
