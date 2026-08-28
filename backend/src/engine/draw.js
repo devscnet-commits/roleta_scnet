@@ -1,4 +1,4 @@
-import db from '../db.js';
+import db, { runInTransaction } from '../db.js';
 
 function getEligiblePrizeIds(campaignId, cityId) {
   if (!cityId) return new Set();
@@ -66,4 +66,6 @@ export function runDraw({ campaignId, cityId, cityEligible }) {
   return chosen;
 }
 
-export const runDrawTx = db.transaction(runDraw);
+export function runDrawTx(args) {
+  return runInTransaction(() => runDraw(args));
+}
