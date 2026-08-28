@@ -3,11 +3,18 @@ import { api } from '../../../api.js';
 
 export default function DashboardTab({ campaignId }) {
   const [data, setData] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get(`/admin/campaigns/${campaignId}/dashboard`).then(setData);
+    setError('');
+    setData(null);
+    api
+      .get(`/admin/campaigns/${campaignId}/dashboard`)
+      .then(setData)
+      .catch((err) => setError(`Não foi possível carregar o painel (${err.status || '?'}): ${err.body?.message || err.message}`));
   }, [campaignId]);
 
+  if (error) return <div className="error-msg">{error}</div>;
   if (!data) return <p>Carregando...</p>;
 
   return (
