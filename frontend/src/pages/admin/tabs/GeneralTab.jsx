@@ -22,7 +22,6 @@ const TEXT_FIELDS = [
 
 const COLOR_FIELDS = [
   ['primary', 'Cor primária'],
-  ['secondary', 'Cor secundária'],
   ['background', 'Fundo do cartão'],
   ['text', 'Cor do texto'],
   ['accent', 'Cor de destaque (botões)'],

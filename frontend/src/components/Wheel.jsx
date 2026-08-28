@@ -1,5 +1,48 @@
 import { useEffect, useRef, useState } from 'react';
 
+function wrapLines(ctx, text, maxWidth, maxLines) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+
+  function pushHardBreak(word) {
+    let chunk = '';
+    for (const ch of word) {
+      const test = chunk + ch;
+      if (chunk && ctx.measureText(test).width > maxWidth) {
+        lines.push(chunk);
+        chunk = ch;
+      } else {
+        chunk = test;
+      }
+    }
+    return chunk;
+  }
+
+  for (const word of words) {
+    if (lines.length >= maxLines) break;
+    const test = current ? `${current} ${word}` : word;
+    if (ctx.measureText(test).width <= maxWidth) {
+      current = test;
+    } else {
+      if (current) lines.push(current);
+      current = ctx.measureText(word).width > maxWidth ? pushHardBreak(word) : word;
+    }
+  }
+  if (current && lines.length < maxLines) lines.push(current);
+  const usedWordCount = lines.join(' ').split(' ').length;
+  const truncated = usedWordCount < words.length || lines.length > maxLines;
+  const finalLines = lines.slice(0, maxLines);
+  if (truncated && finalLines.length) {
+    let last = finalLines[finalLines.length - 1];
+    while (last.length > 1 && ctx.measureText(`${last}…`).width > maxWidth) {
+      last = last.slice(0, -1);
+    }
+    finalLines[finalLines.length - 1] = `${last}…`;
+  }
+  return finalLines;
+}
+
 function drawWheel(canvas, segments) {
   const ctx = canvas.getContext('2d');
   const size = canvas.width;
@@ -28,20 +71,15 @@ function drawWheel(canvas, segments) {
     ctx.fillStyle = '#fff';
 
     const maxTextWidth = radius - 22 - radius * 0.36;
-    let fontSize = Math.max(11, radius * 0.085);
+    const fontSize = Math.max(13, radius * 0.075);
     ctx.font = `700 ${fontSize}px 'Baloo 2', sans-serif`;
-    while (fontSize > 9 && ctx.measureText(seg.title).width > maxTextWidth) {
-      fontSize -= 1;
-      ctx.font = `700 ${fontSize}px 'Baloo 2', sans-serif`;
-    }
-    let label = seg.title;
-    if (ctx.measureText(label).width > maxTextWidth) {
-      while (label.length > 3 && ctx.measureText(label + '…').width > maxTextWidth) {
-        label = label.slice(0, -1);
-      }
-      label += '…';
-    }
-    ctx.fillText(label, radius - 22, 4);
+
+    const lines = ctx.measureText(seg.title).width <= maxTextWidth ? [seg.title] : wrapLines(ctx, seg.title, maxTextWidth, 2);
+    const lineHeight = fontSize * 1.05;
+    const startY = 4 - ((lines.length - 1) * lineHeight) / 2;
+    lines.forEach((line, li) => {
+      ctx.fillText(line, radius - 22, startY + li * lineHeight);
+    });
     ctx.restore();
   });
 }
