@@ -132,15 +132,6 @@ export default function CampaignPage() {
               </div>
             )}
             <div className="field">
-              <label>Cidade</label>
-              <input
-                required={campaign.formConfig.city?.required}
-                value={form.city}
-                onChange={(e) => setForm({ ...form, city: e.target.value })}
-                placeholder="Ex: Rio do Sul, Lages, Blumenau..."
-              />
-            </div>
-            <div className="field">
               <label>CPF</label>
               <input
                 required={campaign.formConfig.cpf?.required}
@@ -149,7 +140,6 @@ export default function CampaignPage() {
                 onChange={(e) => setForm({ ...form, cpf: formatCpf(e.target.value) })}
                 placeholder="000.000.000-00"
               />
-              <p className="field-hint">Identificação para validação e entrega presencial do prêmio no stand.</p>
             </div>
             <div className="field">
               <label>Telefone</label>
@@ -159,6 +149,15 @@ export default function CampaignPage() {
                 inputMode="numeric"
                 onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })}
                 placeholder="(00) 00000-0000"
+              />
+            </div>
+            <div className="field">
+              <label>Cidade</label>
+              <input
+                required={campaign.formConfig.city?.required}
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                placeholder="Ex: Rio do Sul, Lages, Blumenau..."
               />
             </div>
             {(campaign.formConfig.customFields || []).map((f) => (
