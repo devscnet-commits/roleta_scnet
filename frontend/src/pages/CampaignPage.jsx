@@ -23,6 +23,7 @@ export default function CampaignPage() {
   const [loadError, setLoadError] = useState(null);
   const [step, setStep] = useState('form'); // form | spinning | result
   const [form, setForm] = useState({ name: '', cpf: '', phone: '', city: '' });
+  const [extraFields, setExtraFields] = useState({});
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [drawResult, setDrawResult] = useState(null);
@@ -70,7 +71,7 @@ export default function CampaignPage() {
     setSubmitError('');
     setSubmitting(true);
     try {
-      const res = await api.post(`/public/campaigns/${slug}/participate`, form);
+      const res = await api.post(`/public/campaigns/${slug}/participate`, { ...form, extraFields });
       if (res.status === 'invalid_cpf' || res.status === 'already_participated') {
         setSubmitError(res.message);
         setSubmitting(false);
@@ -143,6 +144,17 @@ export default function CampaignPage() {
                 placeholder="Sua cidade"
               />
             </div>
+            {(campaign.formConfig.customFields || []).map((f) => (
+              <div className="field" key={f.id}>
+                <label>{f.label}</label>
+                <input
+                  type={f.type === 'text' ? 'text' : f.type}
+                  required={f.required}
+                  value={extraFields[f.id] || ''}
+                  onChange={(e) => setExtraFields({ ...extraFields, [f.id]: e.target.value })}
+                />
+              </div>
+            ))}
             <button className="btn-primary" type="submit" disabled={submitting}>
               {submitting ? 'Enviando...' : campaign.texts.submitButton}
             </button>

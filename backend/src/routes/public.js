@@ -37,7 +37,7 @@ router.post('/campaigns/:slug/participate', (req, res) => {
 
   const texts = JSON.parse(campaign.texts_json);
   const formConfig = JSON.parse(campaign.form_config_json);
-  const { name, cpf, phone, city } = req.body || {};
+  const { name, cpf, phone, city, extraFields } = req.body || {};
 
   if (formConfig.name?.required && !String(name || '').trim()) {
     return res.status(400).json({ status: 'error', message: 'Nome é obrigatório.' });
@@ -47,6 +47,16 @@ router.post('/campaigns/:slug/participate', (req, res) => {
   }
   if (formConfig.city?.required && !String(city || '').trim()) {
     return res.status(400).json({ status: 'error', message: 'Cidade é obrigatória.' });
+  }
+
+  const customFields = Array.isArray(formConfig.customFields) ? formConfig.customFields : [];
+  const extraFieldsValues = {};
+  for (const field of customFields) {
+    const value = String((extraFields || {})[field.id] || '').trim();
+    if (field.required && !value) {
+      return res.status(400).json({ status: 'error', message: `${field.label} é obrigatório.` });
+    }
+    extraFieldsValues[field.id] = value;
   }
 
   const cpfDigits = onlyDigits(cpf);
@@ -87,8 +97,8 @@ router.post('/campaigns/:slug/participate', (req, res) => {
 
   db.prepare(
     `INSERT INTO participations
-      (campaign_id, name, cpf, cpf_masked, phone, city, city_eligible, result_type, prize_id, prize_title, redemption_code)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (campaign_id, name, cpf, cpf_masked, phone, city, city_eligible, result_type, prize_id, prize_title, redemption_code, extra_fields_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     campaign.id,
     String(name || '').trim(),
@@ -100,7 +110,8 @@ router.post('/campaigns/:slug/participate', (req, res) => {
     chosen.type,
     chosen.type === 'prize' ? chosen.id : null,
     chosen.type === 'prize' ? chosen.title : '',
-    redemptionCode
+    redemptionCode,
+    JSON.stringify(extraFieldsValues)
   );
 
   res.json({
