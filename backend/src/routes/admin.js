@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import db from '../db.js';
 import { signToken, requireAuth } from '../auth.js';
 import { normalizeCity } from '../cpf.js';
+import { uploadVideo } from '../uploads.js';
 
 const router = Router();
 
@@ -16,6 +17,22 @@ router.post('/login', (req, res) => {
 });
 
 router.use(requireAuth);
+
+router.post('/uploads/video', (req, res) => {
+  uploadVideo.single('file')(req, res, (err) => {
+    if (err) {
+      const message =
+        err.message === 'invalid_file_type'
+          ? 'Formato inválido. Envie um vídeo MP4, WebM, OGG ou MOV.'
+          : err.code === 'LIMIT_FILE_SIZE'
+            ? 'Vídeo muito grande. Limite de 50MB.'
+            : 'Falha ao enviar o vídeo.';
+      return res.status(400).json({ error: 'upload_failed', message });
+    }
+    if (!req.file) return res.status(400).json({ error: 'no_file', message: 'Nenhum arquivo enviado.' });
+    res.status(201).json({ url: `/uploads/${req.file.filename}` });
+  });
+});
 
 // ---- Campaigns ----
 router.get('/campaigns', (req, res) => {
@@ -48,7 +65,13 @@ router.post('/campaigns', (req, res) => {
           cpfInvalidMessage: 'CPF inválido. Confira os números e tente novamente.',
           alreadyParticipatedMessage: 'Este CPF já participou desta promoção.',
         }),
-        JSON.stringify({ name: { required: true }, cpf: { required: true }, phone: { required: true }, city: { required: true } })
+        JSON.stringify({
+          name: { required: true },
+          cpf: { required: true },
+          phone: { required: true },
+          city: { required: true },
+          customFields: [],
+        })
       );
     res.status(201).json(serializeCampaign(db.prepare('SELECT * FROM campaigns WHERE id = ?').get(info.lastInsertRowid)));
   } catch (e) {
@@ -255,7 +278,14 @@ router.get('/campaigns/:id/participants', (req, res) => {
   sql += ` ORDER BY ${sortCol} COLLATE NOCASE ${sortOrder}`;
 
   const rows = db.prepare(sql).all(...params);
-  res.json(rows.map((r) => ({ ...r, city_eligible: !!r.city_eligible, redeemed: !!r.redeemed_at })));
+  res.json(
+    rows.map((r) => ({
+      ...r,
+      city_eligible: !!r.city_eligible,
+      redeemed: !!r.redeemed_at,
+      extra_fields: JSON.parse(r.extra_fields_json || '{}'),
+    }))
+  );
 });
 
 router.get('/campaigns/:id/participants/export.csv', (req, res) => {
@@ -264,10 +294,24 @@ router.get('/campaigns/:id/participants/export.csv', (req, res) => {
   const rows = db
     .prepare('SELECT * FROM participations WHERE campaign_id = ? ORDER BY city COLLATE NOCASE ASC, name COLLATE NOCASE ASC')
     .all(campaign.id);
-  const header = ['Nome', 'CPF', 'Telefone', 'Cidade', 'Cidade Atendida', 'Resultado', 'Prêmio', 'Código', 'Retirado', 'Data'];
+  const customFields = JSON.parse(campaign.form_config_json).customFields || [];
+  const header = [
+    'Nome',
+    'CPF',
+    'Telefone',
+    'Cidade',
+    'Cidade Atendida',
+    ...customFields.map((f) => f.label),
+    'Resultado',
+    'Prêmio',
+    'Código',
+    'Retirado',
+    'Data',
+  ];
   const csvEscape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const lines = [header.map(csvEscape).join(';')];
   for (const r of rows) {
+    const extraValues = JSON.parse(r.extra_fields_json || '{}');
     lines.push(
       [
         r.name,
@@ -275,6 +319,7 @@ router.get('/campaigns/:id/participants/export.csv', (req, res) => {
         r.phone,
         r.city,
         r.city_eligible ? 'Sim' : 'Não',
+        ...customFields.map((f) => extraValues[f.id] || ''),
         r.result_type === 'prize' ? 'Ganhou' : 'Não ganhou',
         r.prize_title,
         r.redemption_code || '',

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../../api.js';
 
-export default function ParticipantsTab({ campaignId, notify }) {
+export default function ParticipantsTab({ campaignId, campaign, notify }) {
+  const customFields = campaign?.formConfig?.customFields || [];
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState('');
   const [city, setCity] = useState('');
@@ -83,6 +84,9 @@ export default function ParticipantsTab({ campaignId, notify }) {
             <th>CPF</th>
             <th>Telefone</th>
             <th onClick={() => toggleSort('city')}>Cidade {sort === 'city' && (order === 'asc' ? '▲' : '▼')}</th>
+            {customFields.map((f) => (
+              <th key={f.id}>{f.label}</th>
+            ))}
             <th onClick={() => toggleSort('result_type')}>Resultado {sort === 'result_type' && (order === 'asc' ? '▲' : '▼')}</th>
             <th>Prêmio</th>
             <th onClick={() => toggleSort('created_at')}>Data {sort === 'created_at' && (order === 'asc' ? '▲' : '▼')}</th>
@@ -96,6 +100,9 @@ export default function ParticipantsTab({ campaignId, notify }) {
               <td>{r.cpf_masked}</td>
               <td>{r.phone}</td>
               <td>{r.city}</td>
+              {customFields.map((f) => (
+                <td key={f.id}>{r.extra_fields?.[f.id] || ''}</td>
+              ))}
               <td>
                 <span className={`pill ${r.result_type === 'prize' ? 'win' : 'lose'}`}>
                   {r.result_type === 'prize' ? 'Ganhou' : 'Não ganhou'}

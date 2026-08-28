@@ -48,6 +48,7 @@ if (campaignCount === 0) {
         cpf: { required: true },
         phone: { required: true },
         city: { required: true },
+        customFields: [],
       })
     );
   const campaignId = info.lastInsertRowid;
