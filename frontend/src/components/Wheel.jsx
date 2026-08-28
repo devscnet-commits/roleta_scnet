@@ -69,16 +69,21 @@ function drawWheel(canvas, segments) {
     ctx.rotate(start + sliceAngle / 2);
     ctx.textAlign = 'right';
     ctx.fillStyle = '#fff';
+    ctx.strokeStyle = 'rgba(11, 31, 58, 0.65)';
+    ctx.lineJoin = 'round';
 
     const maxTextWidth = radius - 22 - radius * 0.36;
     const fontSize = Math.max(13, radius * 0.075);
     ctx.font = `700 ${fontSize}px 'Baloo 2', sans-serif`;
+    ctx.lineWidth = fontSize * 0.14;
 
     const lines = ctx.measureText(seg.title).width <= maxTextWidth ? [seg.title] : wrapLines(ctx, seg.title, maxTextWidth, 2);
     const lineHeight = fontSize * 1.05;
     const startY = 4 - ((lines.length - 1) * lineHeight) / 2;
     lines.forEach((line, li) => {
-      ctx.fillText(line, radius - 22, startY + li * lineHeight);
+      const y = startY + li * lineHeight;
+      ctx.strokeText(line, radius - 22, y);
+      ctx.fillText(line, radius - 22, y);
     });
     ctx.restore();
   });
