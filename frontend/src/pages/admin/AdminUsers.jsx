@@ -24,7 +24,13 @@ export default function AdminUsers() {
       setRole('consultor');
       load();
     } catch (err) {
-      setError(err.body?.error === 'email_taken' ? 'Esse e-mail já está cadastrado.' : 'Erro ao criar usuário.');
+      if (err.body?.error === 'email_taken') {
+        setError('Esse e-mail já está cadastrado.');
+      } else if (err.status === 403) {
+        setError('Sua sessão não tem permissão de administrador. Saia e entre novamente em /admin/login.');
+      } else {
+        setError(`Erro ao criar usuário (${err.status || '?'}): ${err.body?.message || err.message || 'erro desconhecido'}.`);
+      }
     }
   }
 

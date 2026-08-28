@@ -16,7 +16,7 @@ app.use('/api/admin', adminRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({ error: 'internal_error' });
+  res.status(500).json({ error: 'internal_error', message: err.message });
 });
 
 const port = process.env.PORT || 4000;
