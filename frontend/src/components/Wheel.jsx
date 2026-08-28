@@ -72,8 +72,8 @@ function drawWheel(canvas, segments) {
     ctx.strokeStyle = 'rgba(11, 31, 58, 0.65)';
     ctx.lineJoin = 'round';
 
-    const maxTextWidth = radius - 22 - radius * 0.36;
-    const fontSize = Math.max(13, radius * 0.075);
+    const maxTextWidth = radius - 22 - radius * 0.34;
+    const fontSize = Math.max(20, radius * 0.115);
     ctx.font = `700 ${fontSize}px 'Baloo 2', sans-serif`;
     ctx.lineWidth = fontSize * 0.14;
 
