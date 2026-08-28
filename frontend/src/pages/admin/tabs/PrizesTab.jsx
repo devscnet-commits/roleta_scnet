@@ -34,6 +34,8 @@ export default function PrizesTab({ campaignId, notify }) {
   useEffect(load, [campaignId]);
 
   const totalWeight = prizes.filter((p) => p.active).reduce((s, p) => s + p.probability_weight, 0);
+  const hasNoPrizeFallback = prizes.some((p) => p.active && p.type === 'no_prize');
+  const hasAnyStock = prizes.some((p) => p.active && p.type === 'prize' && p.quantity_remaining > 0);
 
   async function handleVideoUpload(file) {
     if (!file) return;
@@ -95,6 +97,19 @@ export default function PrizesTab({ campaignId, notify }) {
 
   return (
     <div>
+      {!hasNoPrizeFallback && !hasAnyStock && prizes.length > 0 && (
+        <div className="error-msg">
+          ⚠️ Nenhuma opção "sem prêmio" ativa e nenhum prêmio com estoque disponível. A roleta vai travar com erro para
+          os participantes até você reativar/criar uma opção "sem prêmio" ou repor estoque.
+        </div>
+      )}
+      {!hasNoPrizeFallback && hasAnyStock && (
+        <div className="error-msg" style={{ background: '#fff6e0', color: '#8a6300' }}>
+          ⚠️ Você não tem nenhuma opção "sem prêmio" ativa. Isso funciona enquanto houver estoque de prêmios, mas assim
+          que esgotar (ou para participantes de cidades não elegíveis), a roleta vai travar com erro. Recomendo manter
+          pelo menos uma opção "sem prêmio" sempre ativa.
+        </div>
+      )}
       <div className="admin-card">
         <p>
           Total de opções: <strong>{prizes.length}</strong> · Soma de pesos (probabilidade relativa) das opções
