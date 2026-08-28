@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import db from './db.js';
+import { normalizeCity } from './cpf.js';
 
 const email = process.env.ADMIN_EMAIL || 'admin@scnet.com.br';
 const password = process.env.ADMIN_PASSWORD || 'scnet2026';
@@ -56,8 +57,7 @@ if (campaignCount === 0) {
     'INSERT INTO cities (campaign_id, name, name_normalized, eligible) VALUES (?, ?, ?, 1)'
   );
   const cityIds = cities.map((name) => {
-    const normalized = name.trim().toLowerCase();
-    return insertCity.run(campaignId, name, normalized).lastInsertRowid;
+    return insertCity.run(campaignId, name, normalizeCity(name)).lastInsertRowid;
   });
 
   const insertPrize = db.prepare(
