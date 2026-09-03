@@ -1,0 +1,7 @@
+**/node_modules
+backend/data.sqlite
+backend/data.sqlite-*
+backend/uploads
+frontend/dist
+.git
+*.md

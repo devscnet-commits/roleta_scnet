@@ -18,7 +18,11 @@ export default function AdminLogin() {
       localStorage.setItem('admin_role', res.role || 'admin');
       navigate(res.role === 'consultor' ? '/consultor' : '/admin');
     } catch (err) {
-      setError('E-mail ou senha inválidos.');
+      if (err.status === 401) {
+        setError('E-mail ou senha inválidos.');
+      } else {
+        setError(`Falha ao entrar (${err.status || 'sem conexão'}): ${err.body?.message || err.message}`);
+      }
     }
   }
 

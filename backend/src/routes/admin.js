@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import db from '../db.js';
+import db, { runInTransaction } from '../db.js';
 import { signToken, requireAuth, requireRole } from '../auth.js';
 import { normalizeCity } from '../cpf.js';
 import { uploadVideo } from '../uploads.js';
@@ -123,6 +123,88 @@ router.get('/campaigns/:id', (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
   res.json(serializeCampaign(campaign));
+});
+
+router.post('/campaigns/:id/duplicate', adminOnly, (req, res) => {
+  const source = getCampaignOr404(req, res);
+  if (!source) return;
+  const { slug, name } = req.body || {};
+  if (!String(slug || '').trim() || !String(name || '').trim()) {
+    return res.status(400).json({ error: 'slug_and_name_required' });
+  }
+
+  try {
+    const newCampaign = runInTransaction(() => {
+      const info = db
+        .prepare(
+          `INSERT INTO campaigns (slug, name, status, default_city_eligible, colors_json, texts_json, form_config_json)
+           VALUES (?, ?, 'draft', ?, ?, ?, ?)`
+        )
+        .run(
+          String(slug).trim(),
+          String(name).trim(),
+          source.default_city_eligible,
+          source.colors_json,
+          source.texts_json,
+          source.form_config_json
+        );
+      const newCampaignId = info.lastInsertRowid;
+
+      const cities = db.prepare('SELECT * FROM cities WHERE campaign_id = ?').all(source.id);
+      const cityIdMap = new Map();
+      const insertCity = db.prepare(
+        'INSERT INTO cities (campaign_id, name, name_normalized, eligible) VALUES (?, ?, ?, ?)'
+      );
+      for (const city of cities) {
+        const cityInfo = insertCity.run(newCampaignId, city.name, city.name_normalized, city.eligible);
+        cityIdMap.set(city.id, cityInfo.lastInsertRowid);
+      }
+
+      const prizes = db.prepare('SELECT * FROM prizes WHERE campaign_id = ?').all(source.id);
+      const prizeIdMap = new Map();
+      const insertPrize = db.prepare(
+        `INSERT INTO prizes (campaign_id, type, title, description, color, quantity_total, quantity_remaining, probability_weight, city_scope, video_url, redeem_message, order_index, active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      );
+      for (const prize of prizes) {
+        const prizeInfo = insertPrize.run(
+          newCampaignId,
+          prize.type,
+          prize.title,
+          prize.description,
+          prize.color,
+          prize.quantity_total,
+          prize.quantity_total,
+          prize.probability_weight,
+          prize.city_scope,
+          prize.video_url,
+          prize.redeem_message,
+          prize.order_index,
+          prize.active
+        );
+        prizeIdMap.set(prize.id, prizeInfo.lastInsertRowid);
+      }
+
+      const prizeCities = db
+        .prepare(
+          `SELECT pc.* FROM prize_cities pc JOIN prizes p ON p.id = pc.prize_id WHERE p.campaign_id = ?`
+        )
+        .all(source.id);
+      const insertPrizeCity = db.prepare('INSERT OR IGNORE INTO prize_cities (prize_id, city_id) VALUES (?, ?)');
+      for (const link of prizeCities) {
+        const newPrizeId = prizeIdMap.get(link.prize_id);
+        const newCityId = cityIdMap.get(link.city_id);
+        if (newPrizeId && newCityId) insertPrizeCity.run(newPrizeId, newCityId);
+      }
+
+      return db.prepare('SELECT * FROM campaigns WHERE id = ?').get(newCampaignId);
+    });
+
+    res.status(201).json(serializeCampaign(newCampaign));
+  } catch (e) {
+    if (String(e.message).includes('UNIQUE')) return res.status(409).json({ error: 'slug_taken' });
+    throw e;
+  }
 });
 
 router.put('/campaigns/:id', adminOnly, (req, res) => {
