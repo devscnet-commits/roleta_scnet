@@ -5,7 +5,8 @@ async function request(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (token && path.startsWith('/admin')) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(BASE + path, { ...options, headers });
-  if (res.status === 401 && path.startsWith('/admin')) {
+  const isLoginRequest = path === '/admin/login';
+  if (res.status === 401 && path.startsWith('/admin') && !isLoginRequest) {
     const role = localStorage.getItem('admin_role');
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_role');

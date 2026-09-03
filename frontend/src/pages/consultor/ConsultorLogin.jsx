@@ -22,7 +22,11 @@ export default function ConsultorLogin() {
       localStorage.setItem('admin_role', res.role);
       navigate('/consultor');
     } catch (err) {
-      setError('E-mail ou senha inválidos.');
+      if (err.status === 401) {
+        setError('E-mail ou senha inválidos.');
+      } else {
+        setError(`Falha ao entrar (${err.status || 'sem conexão'}): ${err.body?.message || err.message}`);
+      }
     }
   }
 
