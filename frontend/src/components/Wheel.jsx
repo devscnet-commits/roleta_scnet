@@ -89,7 +89,18 @@ function drawWheel(canvas, segments) {
   });
 }
 
-export default function Wheel({ segments, spinToId, spinToken, onSpinEnd, onSpinClick, spinLabel = 'GIRAR', spinDisabled }) {
+const LIGHT_COUNT = 20;
+const LIGHTS = Array.from({ length: LIGHT_COUNT }, (_, i) => {
+  const angle = (i / LIGHT_COUNT) * 2 * Math.PI - Math.PI / 2;
+  const radiusPct = 47.5;
+  return {
+    left: `${50 + radiusPct * Math.cos(angle)}%`,
+    top: `${50 + radiusPct * Math.sin(angle)}%`,
+    delay: `${(i % 4) * 0.15}s`,
+  };
+});
+
+export default function Wheel({ segments, spinToId, spinToken, onSpinEnd, onSpinClick, spinLabel = 'GIRAR', spinDisabled, spinning }) {
   const canvasRef = useRef(null);
   const rotationRef = useRef(0);
   const [rotation, setRotation] = useState(0);
@@ -114,7 +125,12 @@ export default function Wheel({ segments, spinToId, spinToken, onSpinEnd, onSpin
   }, [spinToken]);
 
   return (
-    <div className="wheel-wrap">
+    <div className={`wheel-wrap${spinning ? ' is-spinning' : ''}`}>
+      <div className="wheel-lights">
+        {LIGHTS.map((l, i) => (
+          <span key={i} className="wheel-light" style={{ left: l.left, top: l.top, animationDelay: l.delay }} />
+        ))}
+      </div>
       <div className="wheel-pointer" />
       <canvas
         ref={canvasRef}
