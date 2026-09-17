@@ -148,7 +148,18 @@ export default function CampaignPage() {
   return (
     <div className="campaign-screen" style={themeStyle}>
       <div className="brand-header">
-        <img src="/scnet-logo.png" alt="SCNET Internet de Fibra" className="brand-logo" />
+        <img
+          src="/scnet-logo.png"
+          alt="SCNET Internet de Fibra"
+          className="brand-logo"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+            e.currentTarget.nextSibling.style.display = 'block';
+          }}
+        />
+        <span className="brand-logo-fallback" style={{ display: 'none' }}>
+          SCNET
+        </span>
       </div>
 
       <section id="wheel-section" className="wheel-section card" ref={wheelSectionRef}>
@@ -187,14 +198,6 @@ export default function CampaignPage() {
           spinDisabled={spinning}
           spinning={spinning}
         />
-
-        <button className="spin-cta" onClick={handleWheelPrimaryClick} disabled={spinning}>
-          {spinning
-            ? 'Girando...'
-            : readyToSpin
-              ? campaign.texts.spinButton || 'Girar a roleta'
-              : 'Preencha seus dados para liberar o giro'}
-        </button>
       </section>
 
       <section id="form-section" className="form-section card" ref={formSectionRef}>
