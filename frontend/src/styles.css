@@ -254,9 +254,16 @@ input, select {
 
 .wheel-wrap {
   position: relative;
-  width: min(360px, 84vw);
-  height: min(360px, 84vw);
+  width: clamp(240px, 82vw, 360px);
+  height: clamp(240px, 82vw, 360px);
   margin: 0 auto 20px;
+}
+
+@media (min-width: 640px) {
+  .wheel-wrap {
+    width: clamp(240px, 60vw, 380px);
+    height: clamp(240px, 60vw, 380px);
+  }
 }
 
 .wheel-lights {
@@ -302,7 +309,7 @@ input, select {
   align-items: center;
   justify-content: center;
   padding: 10px 20px;
-  background: linear-gradient(120deg, var(--primary), color-mix(in srgb, var(--primary) 70%, var(--secondary)));
+  background: #0055FF;
   box-shadow: 0 4px 16px rgba(11, 31, 58, 0.2);
   z-index: 20;
 }
@@ -311,6 +318,14 @@ input, select {
   height: 32px;
   width: auto;
   display: block;
+}
+
+.brand-logo-fallback {
+  color: #fff;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: 0.04em;
 }
 
 .wheel-pointer {

@@ -32,7 +32,7 @@ function wrapLines(ctx, text, maxWidth, maxLines) {
   if (current && lines.length < maxLines) lines.push(current);
   const usedWordCount = lines.join(' ').split(' ').length;
   const truncated = usedWordCount < words.length || lines.length > maxLines;
-  const finalLines = lines.slice(0, maxLines);
+  let finalLines = lines.slice(0, maxLines);
   if (truncated && finalLines.length) {
     let last = finalLines[finalLines.length - 1];
     while (last.length > 1 && ctx.measureText(`${last}…`).width > maxWidth) {
@@ -40,7 +40,23 @@ function wrapLines(ctx, text, maxWidth, maxLines) {
     }
     finalLines[finalLines.length - 1] = `${last}…`;
   }
-  return finalLines;
+  return { lines: finalLines, truncated };
+}
+
+// Shrinks the font (and allows more stacked lines) until the whole title
+// fits the wedge without being cut off, only truncating as a last resort.
+function fitWheelText(ctx, text, { maxWidth, maxBlockHeight, maxFontSize, minFontSize }) {
+  let best = null;
+  for (let fontSize = maxFontSize; fontSize >= minFontSize; fontSize -= 1) {
+    ctx.font = `700 ${fontSize}px 'Baloo 2', sans-serif`;
+    const lineHeight = fontSize * 1.05;
+    const maxLines = Math.max(1, Math.min(3, Math.floor(maxBlockHeight / lineHeight)));
+    const fullWidth = ctx.measureText(text).width;
+    const { lines, truncated } = fullWidth <= maxWidth ? { lines: [text], truncated: false } : wrapLines(ctx, text, maxWidth, maxLines);
+    best = { fontSize, lineHeight, lines };
+    if (!truncated) return best;
+  }
+  return best;
 }
 
 function drawWheel(canvas, segments) {
@@ -72,18 +88,30 @@ function drawWheel(canvas, segments) {
     ctx.strokeStyle = 'rgba(11, 31, 58, 0.65)';
     ctx.lineJoin = 'round';
 
-    const maxTextWidth = radius - 22 - radius * 0.34;
-    const fontSize = Math.max(20, radius * 0.115);
+    // Text sits along the wedge bisector, right-aligned near the rim. The
+    // narrowest point is near the hub, so size everything off the wedge
+    // angle (not just the radius) to keep text from spilling into neighbors.
+    const centerHubRadius = radius * 0.3;
+    const outerTextX = radius - 26;
+    const nearHubX = centerHubRadius + 12;
+    const maxTextWidth = Math.max(30, outerTextX - nearHubX);
+    const maxBlockHeight = Math.max(18, 2 * nearHubX * Math.tan(sliceAngle / 2) * 0.85);
+    const maxFontSize = Math.max(12, Math.min(22, radius * sliceAngle * 0.1));
+
+    const { fontSize, lineHeight, lines } = fitWheelText(ctx, seg.title, {
+      maxWidth: maxTextWidth,
+      maxBlockHeight,
+      maxFontSize,
+      minFontSize: 9,
+    });
     ctx.font = `700 ${fontSize}px 'Baloo 2', sans-serif`;
     ctx.lineWidth = fontSize * 0.14;
 
-    const lines = ctx.measureText(seg.title).width <= maxTextWidth ? [seg.title] : wrapLines(ctx, seg.title, maxTextWidth, 2);
-    const lineHeight = fontSize * 1.05;
     const startY = 4 - ((lines.length - 1) * lineHeight) / 2;
     lines.forEach((line, li) => {
       const y = startY + li * lineHeight;
-      ctx.strokeText(line, radius - 22, y);
-      ctx.fillText(line, radius - 22, y);
+      ctx.strokeText(line, outerTextX, y);
+      ctx.fillText(line, outerTextX, y);
     });
     ctx.restore();
   });
@@ -92,7 +120,7 @@ function drawWheel(canvas, segments) {
 const LIGHT_COUNT = 20;
 const LIGHTS = Array.from({ length: LIGHT_COUNT }, (_, i) => {
   const angle = (i / LIGHT_COUNT) * 2 * Math.PI - Math.PI / 2;
-  const radiusPct = 56;
+  const radiusPct = 53;
   return {
     left: `${50 + radiusPct * Math.cos(angle)}%`,
     top: `${50 + radiusPct * Math.sin(angle)}%`,
