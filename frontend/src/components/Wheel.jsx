@@ -92,7 +92,7 @@ function drawWheel(canvas, segments) {
 const LIGHT_COUNT = 20;
 const LIGHTS = Array.from({ length: LIGHT_COUNT }, (_, i) => {
   const angle = (i / LIGHT_COUNT) * 2 * Math.PI - Math.PI / 2;
-  const radiusPct = 47.5;
+  const radiusPct = 56;
   return {
     left: `${50 + radiusPct * Math.cos(angle)}%`,
     top: `${50 + radiusPct * Math.sin(angle)}%`,
