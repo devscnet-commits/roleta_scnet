@@ -66,7 +66,7 @@ export default function ParticipantsTab({ campaignId, campaign, notify }) {
   return (
     <div>
       <div className="filters-row">
-        <input placeholder="Buscar nome, CPF ou telefone" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
+        <input placeholder="Buscar nome ou telefone" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
         <input placeholder="Filtrar por cidade" value={city} onChange={(e) => setCity(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
         <select value={result} onChange={(e) => setResult(e.target.value)}>
           <option value="">Todos os resultados</option>
@@ -86,7 +86,6 @@ export default function ParticipantsTab({ campaignId, campaign, notify }) {
         <thead>
           <tr>
             <th onClick={() => toggleSort('name')}>Nome {sort === 'name' && (order === 'asc' ? '▲' : '▼')}</th>
-            <th>CPF</th>
             <th>Telefone</th>
             <th onClick={() => toggleSort('city')}>Cidade {sort === 'city' && (order === 'asc' ? '▲' : '▼')}</th>
             {customFields.map((f) => (
@@ -102,7 +101,6 @@ export default function ParticipantsTab({ campaignId, campaign, notify }) {
           {rows.map((r) => (
             <tr key={r.id}>
               <td>{r.name}</td>
-              <td>{r.cpf_masked}</td>
               <td>{r.phone}</td>
               <td>{r.city}</td>
               {customFields.map((f) => (

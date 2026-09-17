@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import db from '../db.js';
-import { isValidCpf, onlyDigits, maskCpf, normalizeCity } from '../cpf.js';
+import { normalizeCity } from '../text.js';
+import { isValidPhone, normalizePhone } from '../phone.js';
 import { runDrawTx } from '../engine/draw.js';
 import { nanoid } from 'nanoid';
 
@@ -37,13 +38,10 @@ router.post('/campaigns/:slug/participate', (req, res) => {
 
   const texts = JSON.parse(campaign.texts_json);
   const formConfig = JSON.parse(campaign.form_config_json);
-  const { name, cpf, phone, city, extraFields, consent } = req.body || {};
+  const { name, phone, city, extraFields, consent } = req.body || {};
 
   if (formConfig.name?.required && !String(name || '').trim()) {
     return res.status(400).json({ status: 'error', message: 'Nome é obrigatório.' });
-  }
-  if (formConfig.phone?.required && !String(phone || '').trim()) {
-    return res.status(400).json({ status: 'error', message: 'Telefone é obrigatório.' });
   }
   if (formConfig.city?.required && !String(city || '').trim()) {
     return res.status(400).json({ status: 'error', message: 'Cidade é obrigatória.' });
@@ -62,18 +60,18 @@ router.post('/campaigns/:slug/participate', (req, res) => {
     extraFieldsValues[field.id] = value;
   }
 
-  const cpfDigits = onlyDigits(cpf);
-  if (!isValidCpf(cpfDigits)) {
-    return res.status(200).json({ status: 'invalid_cpf', message: texts.cpfInvalidMessage || 'CPF inválido.' });
+  if (!isValidPhone(phone)) {
+    return res.status(200).json({ status: 'invalid_phone', message: texts.phoneInvalidMessage || 'Telefone inválido.' });
   }
+  const phoneNormalized = normalizePhone(phone);
 
   const already = db
-    .prepare('SELECT id FROM participations WHERE campaign_id = ? AND cpf = ?')
-    .get(campaign.id, cpfDigits);
+    .prepare('SELECT id FROM participations WHERE campaign_id = ? AND phone_normalized = ?')
+    .get(campaign.id, phoneNormalized);
   if (already) {
     return res
       .status(200)
-      .json({ status: 'already_participated', message: texts.alreadyParticipatedMessage || 'CPF já participou.' });
+      .json({ status: 'already_participated', message: texts.alreadyParticipatedMessage || 'Este telefone já participou.' });
   }
 
   const cityName = String(city || '').trim();
@@ -98,24 +96,32 @@ router.post('/campaigns/:slug/participate', (req, res) => {
 
   const redemptionCode = chosen.type === 'prize' ? nanoid(8).toUpperCase() : null;
 
-  db.prepare(
-    `INSERT INTO participations
-      (campaign_id, name, cpf, cpf_masked, phone, city, city_eligible, result_type, prize_id, prize_title, redemption_code, extra_fields_json, consent_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
-  ).run(
-    campaign.id,
-    String(name || '').trim(),
-    cpfDigits,
-    maskCpf(cpfDigits),
-    String(phone || '').trim(),
-    cityName,
-    cityEligible ? 1 : 0,
-    chosen.type,
-    chosen.type === 'prize' ? chosen.id : null,
-    chosen.type === 'prize' ? chosen.title : '',
-    redemptionCode,
-    JSON.stringify(extraFieldsValues)
-  );
+  try {
+    db.prepare(
+      `INSERT INTO participations
+        (campaign_id, name, phone, phone_normalized, city, city_eligible, result_type, prize_id, prize_title, redemption_code, extra_fields_json, consent_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+    ).run(
+      campaign.id,
+      String(name || '').trim(),
+      String(phone || '').trim(),
+      phoneNormalized,
+      cityName,
+      cityEligible ? 1 : 0,
+      chosen.type,
+      chosen.type === 'prize' ? chosen.id : null,
+      chosen.type === 'prize' ? chosen.title : '',
+      redemptionCode,
+      JSON.stringify(extraFieldsValues)
+    );
+  } catch (err) {
+    if (String(err.message).includes('UNIQUE')) {
+      return res
+        .status(200)
+        .json({ status: 'already_participated', message: texts.alreadyParticipatedMessage || 'Este telefone já participou.' });
+    }
+    throw err;
+  }
 
   res.json({
     status: 'ok',

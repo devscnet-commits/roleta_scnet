@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import db from './db.js';
-import { normalizeCity } from './cpf.js';
+import { normalizeCity } from './text.js';
 
 const email = process.env.ADMIN_EMAIL || 'admin@scnet.com.br';
 const password = process.env.ADMIN_PASSWORD || 'scnet2026';
@@ -57,12 +57,11 @@ if (campaignCount === 0) {
         loseSubtitle: 'Obrigado por participar. Fique de olho nas próximas promoções da SCNET.',
         redeemInstructions: 'Dirija-se ao estande da SCNET e apresente este código para retirar seu prêmio.',
         standLocation: 'Stand Principal SCNET',
-        cpfInvalidMessage: 'CPF inválido. Confira os números e tente novamente.',
-        alreadyParticipatedMessage: 'Este CPF já participou desta promoção.',
+        phoneInvalidMessage: 'Telefone inválido. Confira o número e tente novamente.',
+        alreadyParticipatedMessage: 'Este telefone já participou desta promoção.',
       }),
       JSON.stringify({
         name: { required: true },
-        cpf: { required: true },
         phone: { required: true },
         city: { required: true },
         customFields: [],

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import db, { runInTransaction } from '../db.js';
 import { signToken, requireAuth, requireRole } from '../auth.js';
-import { normalizeCity } from '../cpf.js';
+import { normalizeCity } from '../text.js';
 import { uploadVideo } from '../uploads.js';
 
 const router = Router();
@@ -101,12 +101,11 @@ router.post('/campaigns', adminOnly, (req, res) => {
           loseSubtitle: 'Obrigado por participar.',
           redeemInstructions: 'Dirija-se ao estande para retirar seu prêmio.',
           standLocation: 'Stand Principal',
-          cpfInvalidMessage: 'CPF inválido. Confira os números e tente novamente.',
-          alreadyParticipatedMessage: 'Este CPF já participou desta promoção.',
+          phoneInvalidMessage: 'Telefone inválido. Confira o número e tente novamente.',
+          alreadyParticipatedMessage: 'Este telefone já participou desta promoção.',
         }),
         JSON.stringify({
           name: { required: true },
-          cpf: { required: true },
           phone: { required: true },
           city: { required: true },
           customFields: [],
@@ -388,9 +387,9 @@ router.get('/campaigns/:id/participants', (req, res) => {
     params.push(result);
   }
   if (search) {
-    sql += ' AND (name LIKE ? OR cpf LIKE ? OR phone LIKE ?)';
+    sql += ' AND (name LIKE ? OR phone LIKE ?)';
     const like = `%${search}%`;
-    params.push(like, like, like);
+    params.push(like, like);
   }
 
   const allowedSort = new Set(['name', 'city', 'created_at', 'result_type']);
@@ -418,7 +417,6 @@ router.get('/campaigns/:id/participants/export.csv', adminOnly, (req, res) => {
   const customFields = JSON.parse(campaign.form_config_json).customFields || [];
   const header = [
     'Nome',
-    'CPF',
     'Telefone',
     'Cidade',
     'Cidade Atendida',
@@ -436,7 +434,6 @@ router.get('/campaigns/:id/participants/export.csv', adminOnly, (req, res) => {
     lines.push(
       [
         r.name,
-        r.cpf,
         r.phone,
         r.city,
         r.city_eligible ? 'Sim' : 'Não',
