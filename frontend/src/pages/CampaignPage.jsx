@@ -25,9 +25,11 @@ export default function CampaignPage() {
   const [spinToken, setSpinToken] = useState(0);
   const [showResultModal, setShowResultModal] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [highlightForm, setHighlightForm] = useState(false);
 
   const wheelSectionRef = useRef(null);
   const formSectionRef = useRef(null);
+  const firstFieldRef = useRef(null);
 
   useEffect(() => {
     api
@@ -67,6 +69,9 @@ export default function CampaignPage() {
 
   function scrollToForm() {
     formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setHighlightForm(true);
+    setTimeout(() => firstFieldRef.current?.focus(), 400);
+    setTimeout(() => setHighlightForm(false), 1800);
   }
 
   function scrollToWheel() {
@@ -202,10 +207,12 @@ export default function CampaignPage() {
           </p>
         ) : (
           <form onSubmit={handleSubmit}>
+            {highlightForm && <div className="required-alert">⚠️ Dados obrigatórios</div>}
             {campaign.formConfig.name?.required !== undefined && (
-              <div className="field">
+              <div className={`field${highlightForm ? ' field-alert' : ''}`}>
                 <label>Nome completo</label>
                 <input
+                  ref={firstFieldRef}
                   required={campaign.formConfig.name?.required}
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -213,9 +220,10 @@ export default function CampaignPage() {
                 />
               </div>
             )}
-            <div className="field">
+            <div className={`field${highlightForm && campaign.formConfig.name?.required === undefined ? ' field-alert' : ''}`}>
               <label>Telefone</label>
               <input
+                ref={campaign.formConfig.name?.required === undefined ? firstFieldRef : null}
                 required
                 value={form.phone}
                 inputMode="numeric"
