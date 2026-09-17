@@ -307,6 +307,12 @@ input, select {
   z-index: 20;
 }
 
+.brand-logo {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
 .wheel-pointer {
   position: absolute;
   top: -6px;

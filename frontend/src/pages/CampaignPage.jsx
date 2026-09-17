@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import Wheel from '../components/Wheel.jsx';
-import ScnetHorizontalLogo from '../components/ScnetHorizontalLogo.jsx';
 
 function formatPhone(value) {
   const d = value.replace(/\D/g, '').slice(0, 11);
@@ -149,7 +148,7 @@ export default function CampaignPage() {
   return (
     <div className="campaign-screen" style={themeStyle}>
       <div className="brand-header">
-        <ScnetHorizontalLogo className="h-8 w-auto" variant="white" />
+        <img src="/scnet-logo.png" alt="SCNET Internet de Fibra" className="brand-logo" />
       </div>
 
       <section id="wheel-section" className="wheel-section card" ref={wheelSectionRef}>
