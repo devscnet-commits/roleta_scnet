@@ -263,16 +263,17 @@ input, select {
 }
 
 .brand-header {
-  width: 100%;
-  max-width: 420px;
+  position: sticky;
+  top: 0;
+  width: calc(100% + 32px);
+  margin: -24px -16px 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 20px;
-  margin: 0 auto 18px;
-  border-radius: 18px;
+  padding: 10px 20px;
   background: linear-gradient(120deg, var(--primary), color-mix(in srgb, var(--primary) 70%, var(--secondary)));
-  box-shadow: 0 10px 24px rgba(11, 31, 58, 0.18);
+  box-shadow: 0 4px 16px rgba(11, 31, 58, 0.2);
+  z-index: 20;
 }
 
 .wheel-pointer {
@@ -359,6 +360,80 @@ input, select {
   max-width: 420px;
   max-height: 90dvh;
   overflow-y: auto;
+  position: relative;
+}
+
+.result-glow {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  filter: blur(30px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.result-glow.win {
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 45%, transparent) 0%, transparent 70%);
+}
+
+.result-glow.lose {
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 30%, transparent) 0%, transparent 70%);
+}
+
+.result-icon-badge {
+  position: relative;
+  z-index: 1;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.result-icon-badge.win {
+  background: linear-gradient(135deg, var(--accent), #fbd06b);
+  animation: result-badge-bounce 1s ease-in-out infinite;
+}
+
+.result-icon-badge.lose {
+  background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+}
+
+@keyframes result-badge-bounce {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-5px) rotate(3deg); }
+}
+
+.result-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.result-code-row .result-code {
+  flex: 1;
+  margin: 0;
+}
+
+.copy-code-btn {
+  flex-shrink: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, white);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 8%, white);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .spin-cta {

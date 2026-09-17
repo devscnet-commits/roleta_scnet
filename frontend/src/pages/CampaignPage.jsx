@@ -24,6 +24,7 @@ export default function CampaignPage() {
   const [spinning, setSpinning] = useState(false);
   const [spinToken, setSpinToken] = useState(0);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const wheelSectionRef = useRef(null);
   const formSectionRef = useRef(null);
@@ -117,8 +118,16 @@ export default function CampaignPage() {
     setShowResultModal(true);
   }
 
+  function handleCopyCode() {
+    if (!drawResult?.prize?.redemptionCode) return;
+    navigator.clipboard?.writeText(drawResult.prize.redemptionCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  }
+
   function handleNewParticipant() {
     setShowResultModal(false);
+    setCodeCopied(false);
     setDrawResult(null);
     setReadyToSpin(false);
     setForm({ name: '', phone: '', city: '' });
@@ -252,6 +261,12 @@ export default function CampaignPage() {
       {showResultModal && drawResult && (
         <div className="result-modal-backdrop" onClick={() => setShowResultModal(false)}>
           <div className="result-modal-card card" onClick={(e) => e.stopPropagation()}>
+            <div className={`result-glow ${drawResult.result === 'prize' ? 'win' : 'lose'}`} />
+
+            <div className={`result-icon-badge ${drawResult.result === 'prize' ? 'win' : 'lose'}`}>
+              {drawResult.result === 'prize' ? '🏆' : '🎉'}
+            </div>
+
             {drawResult.videoUrl && (
               <div className="video-stage">
                 <video src={drawResult.videoUrl} autoPlay muted playsInline loop />
@@ -264,7 +279,14 @@ export default function CampaignPage() {
                 <p className="subtitle" style={{ fontWeight: 700 }}>
                   {drawResult.prize.title}
                 </p>
-                {drawResult.prize.redemptionCode && <div className="result-code">{drawResult.prize.redemptionCode}</div>}
+                {drawResult.prize.redemptionCode && (
+                  <div className="result-code-row">
+                    <div className="result-code">{drawResult.prize.redemptionCode}</div>
+                    <button type="button" className="copy-code-btn" onClick={handleCopyCode}>
+                      {codeCopied ? '✅ Copiado!' : '📋 Copiar'}
+                    </button>
+                  </div>
+                )}
                 <div className="result-box">
                   <p>{drawResult.prize.redeemMessage}</p>
                 </div>
