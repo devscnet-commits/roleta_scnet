@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import Wheel from '../components/Wheel.jsx';
+import ScnetHorizontalLogo from '../components/ScnetHorizontalLogo.jsx';
 
 function formatPhone(value) {
   const d = value.replace(/\D/g, '').slice(0, 11);
@@ -13,14 +14,20 @@ export default function CampaignPage() {
   const { slug } = useParams();
   const [campaign, setCampaign] = useState(null);
   const [loadError, setLoadError] = useState(null);
-  const [step, setStep] = useState('form'); // form | ready | spinning | result
   const [form, setForm] = useState({ name: '', phone: '', city: '' });
   const [extraFields, setExtraFields] = useState({});
   const [consent, setConsent] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [drawResult, setDrawResult] = useState(null);
+  const [readyToSpin, setReadyToSpin] = useState(false);
+  const [spinning, setSpinning] = useState(false);
   const [spinToken, setSpinToken] = useState(0);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  const wheelSectionRef = useRef(null);
+  const formSectionRef = useRef(null);
 
   useEffect(() => {
     api
@@ -31,7 +38,7 @@ export default function CampaignPage() {
 
   if (loadError) {
     return (
-      <div className="campaign-screen">
+      <div className="campaign-screen centered">
         <div className="card">
           <h1>Ops!</h1>
           <p className="subtitle">{loadError}</p>
@@ -42,7 +49,7 @@ export default function CampaignPage() {
 
   if (!campaign) {
     return (
-      <div className="campaign-screen">
+      <div className="campaign-screen centered">
         <div className="card">
           <p className="subtitle">Carregando...</p>
         </div>
@@ -57,6 +64,25 @@ export default function CampaignPage() {
     '--text': campaign.colors.text,
     '--accent': campaign.colors.accent,
   };
+
+  function scrollToForm() {
+    formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function scrollToWheel() {
+    wheelSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function handleWheelPrimaryClick() {
+    if (spinning) return;
+    if (readyToSpin) {
+      scrollToWheel();
+      setSpinning(true);
+      setSpinToken((t) => t + 1);
+    } else {
+      scrollToForm();
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -74,22 +100,41 @@ export default function CampaignPage() {
         return;
       }
       setDrawResult(res);
-      setStep('ready');
+      setReadyToSpin(true);
+      setSubmitting(false);
+      scrollToWheel();
+      setTimeout(() => {
+        setSpinning(true);
+        setSpinToken((t) => t + 1);
+      }, 650);
     } catch (err) {
       setSubmitError(err.message || 'Não foi possível enviar. Tente novamente.');
-    } finally {
       setSubmitting(false);
     }
   }
 
-  function handleSpinTrigger() {
-    if (step !== 'ready') return;
-    setStep('spinning');
-    setSpinToken((t) => t + 1);
+  function handleSpinEnd() {
+    setSpinning(false);
+    setShowResultModal(true);
   }
 
-  function handleSpinEnd() {
-    setStep('result');
+  function handleCopyCode() {
+    if (!drawResult?.prize?.redemptionCode) return;
+    navigator.clipboard?.writeText(drawResult.prize.redemptionCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  }
+
+  function handleNewParticipant() {
+    setShowResultModal(false);
+    setCodeCopied(false);
+    setDrawResult(null);
+    setReadyToSpin(false);
+    setForm({ name: '', phone: '', city: '' });
+    setExtraFields({});
+    setConsent(false);
+    setSubmitError('');
+    scrollToWheel();
   }
 
   const greetingTemplate = campaign.texts.spinGreeting || 'Boa Sorte, {name}!';
@@ -98,19 +143,64 @@ export default function CampaignPage() {
 
   return (
     <div className="campaign-screen" style={themeStyle}>
-      {step === 'form' && (
-        <div className="card">
-          {campaign.texts.badge && (
-            <div className="badge-pill-wrap">
-              <span className="badge-pill">
-                <span className="badge-dot" />
-                {campaign.texts.badge}
-              </span>
-            </div>
-          )}
-          <h1>{campaign.name}</h1>
-          <p className="subtitle">{campaign.texts.welcome}</p>
-          {submitError && <div className="error-msg">{submitError}</div>}
+      <div className="brand-header">
+        <ScnetHorizontalLogo className="h-8 w-auto" variant="white" />
+      </div>
+
+      <section id="wheel-section" className="wheel-section card" ref={wheelSectionRef}>
+        {campaign.texts.badge && (
+          <div className="badge-pill-wrap">
+            <span className="badge-pill">
+              <span className="badge-dot" />
+              {campaign.texts.badge}
+            </span>
+          </div>
+        )}
+
+        {readyToSpin ? (
+          <>
+            <p className="spin-greeting">
+              {greetingParts[0]}
+              {greetingParts.length > 1 && <span className="accent">{participantName}</span>}
+              {greetingParts[1]}
+            </p>
+            <p className="spin-instruction">{campaign.texts.spinInstruction}</p>
+          </>
+        ) : (
+          <>
+            <h1>{campaign.name}</h1>
+            <p className="subtitle">{campaign.texts.welcome}</p>
+          </>
+        )}
+
+        <Wheel
+          segments={campaign.segments}
+          spinToId={drawResult?.segmentId}
+          spinToken={spinToken}
+          onSpinEnd={handleSpinEnd}
+          onSpinClick={handleWheelPrimaryClick}
+          spinLabel={spinning ? '...' : readyToSpin ? 'GIRAR' : 'GIRAR'}
+          spinDisabled={spinning}
+          spinning={spinning}
+        />
+
+        <button className="spin-cta" onClick={handleWheelPrimaryClick} disabled={spinning}>
+          {spinning
+            ? 'Girando...'
+            : readyToSpin
+              ? campaign.texts.spinButton || 'Girar a roleta'
+              : 'Preencha seus dados para liberar o giro'}
+        </button>
+      </section>
+
+      <section id="form-section" className="form-section card" ref={formSectionRef}>
+        <h1>{campaign.texts.formTitle || 'Preencha seus dados para participar'}</h1>
+        {submitError && <div className="error-msg">{submitError}</div>}
+        {readyToSpin ? (
+          <p className="subtitle">
+            Dados enviados! Role para cima e toque em <strong>GIRAR</strong> para ver seu resultado.
+          </p>
+        ) : (
           <form onSubmit={handleSubmit}>
             {campaign.formConfig.name?.required !== undefined && (
               <div className="field">
@@ -165,60 +255,56 @@ export default function CampaignPage() {
               {submitting ? 'Enviando...' : campaign.texts.submitButton || 'Avançar para a Roleta'}
             </button>
           </form>
-        </div>
-      )}
+        )}
+      </section>
 
-      {(step === 'ready' || step === 'spinning') && drawResult && (
-        <div className="card">
-          <p className="spin-greeting">
-            {greetingParts[0]}
-            {greetingParts.length > 1 && <span className="accent">{participantName}</span>}
-            {greetingParts[1]}
-          </p>
-          <p className="spin-instruction">{campaign.texts.spinInstruction}</p>
-          <Wheel
-            segments={campaign.segments}
-            spinToId={drawResult.segmentId}
-            spinToken={spinToken}
-            onSpinEnd={handleSpinEnd}
-            onSpinClick={handleSpinTrigger}
-            spinLabel={step === 'spinning' ? '...' : 'GIRAR'}
-            spinDisabled={step === 'spinning'}
-          />
-          <button className="spin-cta" onClick={handleSpinTrigger} disabled={step === 'spinning'}>
-            {step === 'spinning' ? 'Girando...' : campaign.texts.spinButton || 'Girar a roleta'}
-          </button>
-        </div>
-      )}
+      {showResultModal && drawResult && (
+        <div className="result-modal-backdrop" onClick={() => setShowResultModal(false)}>
+          <div className="result-modal-card card" onClick={(e) => e.stopPropagation()}>
+            <div className={`result-glow ${drawResult.result === 'prize' ? 'win' : 'lose'}`} />
 
-      {step === 'result' && drawResult && (
-        <div className="card">
-          {drawResult.videoUrl && (
-            <div className="video-stage">
-              <video src={drawResult.videoUrl} autoPlay muted playsInline loop />
+            <div className={`result-icon-badge ${drawResult.result === 'prize' ? 'win' : 'lose'}`}>
+              {drawResult.result === 'prize' ? '🏆' : '🎉'}
             </div>
-          )}
 
-          {drawResult.result === 'prize' && (
-            <>
-              <p className="result-title win">{campaign.texts.winTitle}</p>
-              <p className="subtitle" style={{ fontWeight: 700 }}>
-                {drawResult.prize.title}
-              </p>
-              {drawResult.prize.redemptionCode && <div className="result-code">{drawResult.prize.redemptionCode}</div>}
-              <div className="result-box">
-                <p>{drawResult.prize.redeemMessage}</p>
+            {drawResult.videoUrl && (
+              <div className="video-stage">
+                <video src={drawResult.videoUrl} autoPlay muted playsInline loop />
               </div>
-              {campaign.texts.standLocation && <p className="result-location">📍 {campaign.texts.standLocation}</p>}
-            </>
-          )}
+            )}
 
-          {drawResult.result === 'no_prize' && (
-            <>
-              <p className="result-title lose">{campaign.texts.loseTitle}</p>
-              <p className="subtitle">{drawResult.resultMessage || campaign.texts.loseSubtitle}</p>
-            </>
-          )}
+            {drawResult.result === 'prize' && (
+              <>
+                <p className="result-title win">{campaign.texts.winTitle}</p>
+                <p className="subtitle" style={{ fontWeight: 700 }}>
+                  {drawResult.prize.title}
+                </p>
+                {drawResult.prize.redemptionCode && (
+                  <div className="result-code-row">
+                    <div className="result-code">{drawResult.prize.redemptionCode}</div>
+                    <button type="button" className="copy-code-btn" onClick={handleCopyCode}>
+                      {codeCopied ? '✅ Copiado!' : '📋 Copiar'}
+                    </button>
+                  </div>
+                )}
+                <div className="result-box">
+                  <p>{drawResult.prize.redeemMessage}</p>
+                </div>
+                {campaign.texts.standLocation && <p className="result-location">📍 {campaign.texts.standLocation}</p>}
+              </>
+            )}
+
+            {drawResult.result === 'no_prize' && (
+              <>
+                <p className="result-title lose">{campaign.texts.loseTitle}</p>
+                <p className="subtitle">{drawResult.resultMessage || campaign.texts.loseSubtitle}</p>
+              </>
+            )}
+
+            <button className="btn-primary" type="button" onClick={handleNewParticipant} style={{ marginTop: 10 }}>
+              Novo participante
+            </button>
+          </div>
         </div>
       )}
     </div>
