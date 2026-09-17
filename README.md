@@ -45,9 +45,35 @@ npm run dev    # http://localhost:5173
 - Admin: `http://localhost:5173/admin` (login: `admin@scnet.com.br` / `scnet2026`)
 - Consultor: `http://localhost:5173/consultor` (login: `consultor@scnet.com.br` / `consultor2026`)
 
-Em produção, gere o build com `npm run build` (pasta `frontend/dist`) e sirva
-por trás do mesmo domínio da API (ou configure `VITE_API_PROXY` / um proxy
-reverso apontando `/api` e `/uploads` para o backend).
+Em produção, use o `Dockerfile` na raiz do projeto — veja a seção **Deploy**
+abaixo.
+
+## Deploy (EasyPanel ou qualquer host com Docker)
+
+O `Dockerfile` na raiz compila o frontend e sobe um único container: o
+backend serve a API (`/api`), os vídeos enviados (`/uploads`) e o próprio
+app React (tudo mais) na mesma porta — não precisa de subdomínio separado
+para o admin, ele já é uma rota (`/admin`) dentro do mesmo app.
+
+No EasyPanel:
+
+1. Crie um app do tipo **App** apontando para este repositório Git, com
+   **Build method: Dockerfile** (o `Dockerfile` já está na raiz).
+2. Configure o domínio (ex: `roleta.scnet.com.br`) apontando para a porta
+   `4000` do container.
+3. **Adicione um volume persistente montado em `/app/data`** — é onde ficam
+   o banco SQLite e os vídeos enviados. Sem isso, cada novo deploy apaga tudo.
+4. Configure as variáveis de ambiente antes do primeiro deploy (senão o app
+   sobe com as senhas de exemplo do repositório, o que não é seguro):
+   - `JWT_SECRET` — qualquer string longa e aleatória
+   - `ADMIN_EMAIL` / `ADMIN_PASSWORD` — login do administrador principal
+   - `CONSULTOR_EMAIL` / `CONSULTOR_PASSWORD` — login do consultor de exemplo
+     (opcional; crie os consultores de verdade depois pela aba Usuários)
+5. Publique. Na primeira subida, o container roda o `seed` automaticamente
+   (ele é seguro rodar de novo a cada deploy — só cria o que ainda não existe).
+
+Depois disso, tanto `roleta.scnet.com.br` (participante) quanto
+`roleta.scnet.com.br/admin` e `roleta.scnet.com.br/consultor` já funcionam.
 
 ## O que já está implementado
 
@@ -100,6 +126,4 @@ lugar.
 - Trocar SQLite por PostgreSQL para produção com múltiplos eventos simultâneos
   em maior escala (o schema em `backend/src/db.js` foi desenhado para migrar
   fácil).
-- Múltiplos usuários admin com permissões.
-- Consentimento LGPD explícito no formulário e política de retenção/exclusão
-  de dados por campanha.
+- Política de retenção/exclusão de dados por campanha.

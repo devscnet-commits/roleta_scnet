@@ -3,14 +3,6 @@ import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import Wheel from '../components/Wheel.jsx';
 
-function formatCpf(value) {
-  const d = value.replace(/\D/g, '').slice(0, 11);
-  return d
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-}
-
 function formatPhone(value) {
   const d = value.replace(/\D/g, '').slice(0, 11);
   if (d.length <= 10) return d.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').trim();
@@ -22,7 +14,7 @@ export default function CampaignPage() {
   const [campaign, setCampaign] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [step, setStep] = useState('form'); // form | ready | spinning | result
-  const [form, setForm] = useState({ name: '', cpf: '', phone: '', city: '' });
+  const [form, setForm] = useState({ name: '', phone: '', city: '' });
   const [extraFields, setExtraFields] = useState({});
   const [consent, setConsent] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -76,7 +68,7 @@ export default function CampaignPage() {
     setSubmitting(true);
     try {
       const res = await api.post(`/public/campaigns/${slug}/participate`, { ...form, extraFields, consent });
-      if (res.status === 'invalid_cpf' || res.status === 'already_participated' || res.status === 'error') {
+      if (res.status === 'invalid_phone' || res.status === 'already_participated' || res.status === 'error') {
         setSubmitError(res.message);
         setSubmitting(false);
         return;
@@ -132,24 +124,15 @@ export default function CampaignPage() {
               </div>
             )}
             <div className="field">
-              <label>CPF</label>
-              <input
-                required={campaign.formConfig.cpf?.required}
-                value={form.cpf}
-                inputMode="numeric"
-                onChange={(e) => setForm({ ...form, cpf: formatCpf(e.target.value) })}
-                placeholder="000.000.000-00"
-              />
-            </div>
-            <div className="field">
               <label>Telefone</label>
               <input
-                required={campaign.formConfig.phone?.required}
+                required
                 value={form.phone}
                 inputMode="numeric"
                 onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })}
                 placeholder="(00) 00000-0000"
               />
+              <p className="field-hint">Usamos seu telefone para identificar sua participação.</p>
             </div>
             <div className="field">
               <label>Cidade</label>

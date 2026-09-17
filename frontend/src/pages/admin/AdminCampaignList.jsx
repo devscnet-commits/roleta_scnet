@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 
 export default function AdminCampaignList() {
@@ -7,6 +7,9 @@ export default function AdminCampaignList() {
   const [slug, setSlug] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [duplicating, setDuplicating] = useState(null); // { source, slug, name }
+  const [duplicateError, setDuplicateError] = useState('');
+  const navigate = useNavigate();
 
   function load() {
     api.get('/admin/campaigns').then(setCampaigns).catch(() => {});
@@ -24,6 +27,26 @@ export default function AdminCampaignList() {
       load();
     } catch (err) {
       setError(err.body?.error === 'slug_taken' ? 'Esse identificador (slug) já está em uso.' : 'Erro ao criar campanha.');
+    }
+  }
+
+  function startDuplicate(campaign) {
+    setDuplicateError('');
+    setDuplicating({ source: campaign, slug: '', name: `${campaign.name} (cópia)` });
+  }
+
+  async function confirmDuplicate(e) {
+    e.preventDefault();
+    setDuplicateError('');
+    try {
+      const created = await api.post(`/admin/campaigns/${duplicating.source.id}/duplicate`, {
+        slug: duplicating.slug,
+        name: duplicating.name,
+      });
+      setDuplicating(null);
+      navigate(`/admin/campaigns/${created.id}`);
+    } catch (err) {
+      setDuplicateError(err.body?.error === 'slug_taken' ? 'Esse identificador (slug) já está em uso.' : 'Erro ao duplicar campanha.');
     }
   }
 
@@ -49,6 +72,34 @@ export default function AdminCampaignList() {
         </form>
       </div>
 
+      {duplicating && (
+        <div className="admin-card">
+          <h3 style={{ marginTop: 0 }}>Duplicar "{duplicating.source.name}"</h3>
+          <p style={{ fontSize: 13, color: '#555' }}>
+            Copia textos, cores, roleta/prêmios (estoque reiniciado) e cidades atendidas para uma campanha nova em
+            rascunho. Participantes não são copiados.
+          </p>
+          {duplicateError && <div className="error-msg">{duplicateError}</div>}
+          <form onSubmit={confirmDuplicate} className="form-row" style={{ alignItems: 'end' }}>
+            <div className="field">
+              <label>Nome da nova campanha</label>
+              <input value={duplicating.name} onChange={(e) => setDuplicating({ ...duplicating, name: e.target.value })} required />
+            </div>
+            <div className="field">
+              <label>Identificador (slug)</label>
+              <input
+                value={duplicating.slug}
+                onChange={(e) => setDuplicating({ ...duplicating, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+                placeholder="feira-2027"
+                required
+              />
+            </div>
+            <button className="btn" type="submit">Duplicar</button>
+            <button className="btn secondary" type="button" onClick={() => setDuplicating(null)}>Cancelar</button>
+          </form>
+        </div>
+      )}
+
       {campaigns.map((c) => (
         <div className="admin-card" key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -58,7 +109,10 @@ export default function AdminCampaignList() {
             </span>
             <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>{publicOrigin}/c/{c.slug}</div>
           </div>
-          <Link className="btn" to={`/admin/campaigns/${c.id}`}>Configurar</Link>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn secondary" onClick={() => startDuplicate(c)}>Duplicar</button>
+            <Link className="btn" to={`/admin/campaigns/${c.id}`}>Configurar</Link>
+          </div>
         </div>
       ))}
     </div>

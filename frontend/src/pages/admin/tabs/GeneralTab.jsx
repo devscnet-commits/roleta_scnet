@@ -16,8 +16,8 @@ const TEXT_FIELDS = [
   ['loseSubtitle', 'Mensagem padrão ao não ganhar (usada se a opção não tiver mensagem própria)'],
   ['redeemInstructions', 'Instrução padrão de retirada do prêmio'],
   ['standLocation', 'Localização do stand (aparece na tela de prêmio)'],
-  ['cpfInvalidMessage', 'Mensagem de CPF inválido'],
-  ['alreadyParticipatedMessage', 'Mensagem de CPF já participante'],
+  ['phoneInvalidMessage', 'Mensagem de telefone inválido'],
+  ['alreadyParticipatedMessage', 'Mensagem de telefone já participante'],
 ];
 
 const COLOR_FIELDS = [
@@ -97,15 +97,19 @@ export default function GeneralTab({ campaign, onSaved }) {
 
       <div className="admin-card">
         <h3 style={{ marginTop: 0 }}>Campos do formulário</h3>
+        <p style={{ fontSize: 13, color: '#555' }}>
+          O telefone é sempre obrigatório — é ele que identifica cada participante e impede que a mesma pessoa
+          participe mais de uma vez na mesma campanha.
+        </p>
         <div className="form-row">
-          {['name', 'cpf', 'phone', 'city'].map((f) => (
+          {['name', 'city'].map((f) => (
             <label key={f} className="field" style={{ flexDirection: 'row', display: 'flex', alignItems: 'center', gap: 6 }}>
               <input
                 type="checkbox"
                 checked={!!formConfig[f]?.required}
                 onChange={(e) => setFormConfig({ ...formConfig, [f]: { required: e.target.checked } })}
               />
-              {f === 'name' ? 'Nome' : f === 'cpf' ? 'CPF (obrigatório sempre p/ segurança)' : f === 'phone' ? 'Telefone' : 'Cidade'} obrigatório
+              {f === 'name' ? 'Nome' : 'Cidade'} obrigatório
             </label>
           ))}
         </div>
@@ -114,7 +118,7 @@ export default function GeneralTab({ campaign, onSaved }) {
       <div className="admin-card">
         <h3 style={{ marginTop: 0 }}>Campos personalizados</h3>
         <p style={{ fontSize: 13, color: '#555' }}>
-          Crie campos extras além de nome, CPF, telefone e cidade (ex: e-mail, data de nascimento, uma pergunta específica).
+          Crie campos extras além de nome, telefone e cidade (ex: e-mail, data de nascimento, uma pergunta específica).
         </p>
         {formConfig.customFields.map((f) => (
           <div className="form-row" key={f.id} style={{ alignItems: 'end', borderTop: '1px solid #eee', paddingTop: 10 }}>

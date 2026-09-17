@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../../api.js';
 
-const COLOR_PRESETS = ['#0057B8', '#00B5E2', '#0B1F3A', '#1E3A8A', '#F5A623', '#FFC72C'];
+const COLOR_PRESETS = ['#1E4FD8', '#0B1F6B', '#FFC72C'];
 
 function emptyPrize(orderIndex) {
   return {
     type: 'prize',
     title: '',
     description: '',
-    color: '#1E88E5',
+    color: COLOR_PRESETS[orderIndex % COLOR_PRESETS.length],
     quantityTotal: 10,
     probabilityWeight: 10,
     cityScope: 'all',
@@ -137,20 +137,20 @@ export default function PrizesTab({ campaignId, notify }) {
             </div>
             <div className="field">
               <label>Cor da fatia</label>
-              <input type="color" value={draft.color} onChange={(e) => setDraft({ ...draft, color: e.target.value })} />
-              <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                 {COLOR_PRESETS.map((c) => (
                   <button
                     key={c}
                     type="button"
-                    title="Sugestão de cor SCNET"
+                    title={c}
                     onClick={() => setDraft({ ...draft, color: c })}
                     style={{
-                      width: 18,
-                      height: 18,
+                      width: 32,
+                      height: 32,
                       borderRadius: '50%',
                       background: c,
-                      border: draft.color === c ? '2px solid #333' : '1px solid #ccc',
+                      border: draft.color === c ? '3px solid #0B1F3A' : '1px solid #ccc',
+                      boxShadow: draft.color === c ? '0 0 0 2px #fff inset' : 'none',
                       cursor: 'pointer',
                       padding: 0,
                     }}
