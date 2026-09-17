@@ -208,7 +208,7 @@ input, select {
   padding: 15px;
   border: none;
   border-radius: 14px;
-  background: var(--primary);
+  background: #0055FF;
   color: #fff;
   font-weight: 700;
   font-size: 16px;
