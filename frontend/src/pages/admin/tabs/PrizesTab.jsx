@@ -77,6 +77,13 @@ export default function PrizesTab({ campaignId, notify }) {
     load();
   }
 
+  async function resetStock(p) {
+    if (!confirm(`Voltar o estoque de "${p.title}" para ${p.quantity_total}/${p.quantity_total}?`)) return;
+    await api.put(`/admin/campaigns/${campaignId}/prizes/${p.id}`, { quantityRemaining: p.quantity_total });
+    load();
+    notify('Estoque resetado.');
+  }
+
   function editPrize(p) {
     setDraft({
       id: p.id,
@@ -297,6 +304,9 @@ export default function PrizesTab({ campaignId, notify }) {
               </td>
               <td>
                 <button className="btn secondary" onClick={() => editPrize(p)}>Editar</button>{' '}
+                {p.type === 'prize' && p.quantity_remaining < p.quantity_total && (
+                  <button className="btn secondary" onClick={() => resetStock(p)}>Resetar estoque</button>
+                )}{' '}
                 <button className="btn danger" onClick={() => removePrize(p.id)}>Excluir</button>
               </td>
             </tr>
