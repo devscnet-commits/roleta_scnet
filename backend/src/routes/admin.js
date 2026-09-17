@@ -373,7 +373,7 @@ function getPrizeWithCities(prizeId) {
 router.get('/campaigns/:id/participants', (req, res) => {
   const campaign = getCampaignOr404(req, res);
   if (!campaign) return;
-  const { city, result, search, sort = 'created_at', order = 'desc' } = req.query;
+  const { city, result, search, delivery, sort = 'created_at', order = 'desc' } = req.query;
 
   let sql = 'SELECT * FROM participations WHERE campaign_id = ?';
   const params = [campaign.id];
@@ -387,9 +387,14 @@ router.get('/campaigns/:id/participants', (req, res) => {
     params.push(result);
   }
   if (search) {
-    sql += ' AND (name LIKE ? OR phone LIKE ?)';
+    sql += ' AND (name LIKE ? OR phone LIKE ? OR redemption_code LIKE ?)';
     const like = `%${search}%`;
-    params.push(like, like);
+    params.push(like, like, like);
+  }
+  if (delivery === 'delivered') {
+    sql += ' AND redemption_code IS NOT NULL AND redeemed_at IS NOT NULL';
+  } else if (delivery === 'pending') {
+    sql += ' AND redemption_code IS NOT NULL AND redeemed_at IS NULL';
   }
 
   const allowedSort = new Set(['name', 'city', 'created_at', 'result_type']);

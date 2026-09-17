@@ -8,6 +8,7 @@ export default function ParticipantsTab({ campaignId, campaign, notify }) {
   const [search, setSearch] = useState('');
   const [city, setCity] = useState('');
   const [result, setResult] = useState('');
+  const [delivery, setDelivery] = useState('');
   const [sort, setSort] = useState('created_at');
   const [order, setOrder] = useState('desc');
 
@@ -16,6 +17,7 @@ export default function ParticipantsTab({ campaignId, campaign, notify }) {
     if (search) params.set('search', search);
     if (city) params.set('city', city);
     if (result) params.set('result', result);
+    if (delivery) params.set('delivery', delivery);
     api.get(`/admin/campaigns/${campaignId}/participants?${params.toString()}`).then(setRows);
   }
 
@@ -29,7 +31,9 @@ export default function ParticipantsTab({ campaignId, campaign, notify }) {
     }
   }
 
-  async function redeem(id) {
+  async function redeem(id, code) {
+    const label = code ? `código ${code}` : 'este prêmio';
+    if (!confirm(`Tem certeza? Confirma a entrega de ${label}?`)) return;
     try {
       await api.post(`/admin/campaigns/${campaignId}/participants/${id}/redeem`, {});
       notify('Prêmio marcado como entregue.');
@@ -66,12 +70,17 @@ export default function ParticipantsTab({ campaignId, campaign, notify }) {
   return (
     <div>
       <div className="filters-row">
-        <input placeholder="Buscar nome ou telefone" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
+        <input placeholder="Buscar nome, telefone ou código" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
         <input placeholder="Filtrar por cidade" value={city} onChange={(e) => setCity(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load()} />
         <select value={result} onChange={(e) => setResult(e.target.value)}>
           <option value="">Todos os resultados</option>
           <option value="prize">Ganhou</option>
           <option value="no_prize">Não ganhou</option>
+        </select>
+        <select value={delivery} onChange={(e) => setDelivery(e.target.value)}>
+          <option value="">Entrega: todas</option>
+          <option value="delivered">Entregue</option>
+          <option value="pending">Pendente</option>
         </select>
         <button className="btn secondary" onClick={load}>Filtrar</button>
         {isAdmin && (
@@ -122,7 +131,7 @@ export default function ParticipantsTab({ campaignId, campaign, notify }) {
               <td>{new Date(r.created_at).toLocaleString('pt-BR')}</td>
               <td>
                 {r.result_type === 'prize' && !r.redeemed && (
-                  <button className="btn secondary" onClick={() => redeem(r.id)}>Marcar entregue</button>
+                  <button className="btn secondary" onClick={() => redeem(r.id, r.redemption_code)}>Marcar entregue</button>
                 )}
               </td>
             </tr>
