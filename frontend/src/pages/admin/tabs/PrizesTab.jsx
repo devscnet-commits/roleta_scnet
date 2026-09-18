@@ -62,7 +62,12 @@ export default function PrizesTab({ campaignId, notify }) {
 
   async function saveDraft() {
     if (draft.id) {
-      await api.put(`/admin/campaigns/${campaignId}/prizes/${draft.id}`, draft);
+      // Editing always resets the stock to the full amount typed here,
+      // so admins don't need a separate "reset" action after test spins.
+      await api.put(`/admin/campaigns/${campaignId}/prizes/${draft.id}`, {
+        ...draft,
+        quantityRemaining: draft.quantityTotal,
+      });
     } else {
       await api.post(`/admin/campaigns/${campaignId}/prizes`, draft);
     }
@@ -85,7 +90,6 @@ export default function PrizesTab({ campaignId, notify }) {
       description: p.description,
       color: p.color,
       quantityTotal: p.quantity_total,
-      quantityRemaining: p.quantity_remaining,
       probabilityWeight: p.probability_weight,
       cityScope: p.city_scope,
       videoUrl: p.video_url,
@@ -182,33 +186,19 @@ export default function PrizesTab({ campaignId, notify }) {
             </div>
             {draft.type === 'prize' && (
               <div className="field">
-                <label>Quantidade total (estoque)</label>
+                <label>Quantidade disponível (estoque)</label>
                 <input
                   type="number"
                   min="0"
                   value={draft.quantityTotal}
                   onChange={(e) => setDraft({ ...draft, quantityTotal: e.target.value })}
                 />
+                {draft.id && (
+                  <p className="field-hint">Salvar aqui zera as saídas e deixa o estoque cheio de novo.</p>
+                )}
               </div>
             )}
           </div>
-
-          {draft.type === 'prize' && draft.id && (
-            <div className="form-row">
-              <div className="field">
-                <label>Estoque disponível agora</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={draft.quantityRemaining}
-                  onChange={(e) => setDraft({ ...draft, quantityRemaining: e.target.value })}
-                />
-                <p className="field-hint">
-                  Ajuste aqui pra corrigir o estoque manualmente (ex: voltar pro total depois de testes).
-                </p>
-              </div>
-            </div>
-          )}
 
           {draft.type === 'prize' && (
             <>
