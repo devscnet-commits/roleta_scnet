@@ -77,13 +77,6 @@ export default function PrizesTab({ campaignId, notify }) {
     load();
   }
 
-  async function resetStock(p) {
-    if (!confirm(`Voltar o estoque de "${p.title}" para ${p.quantity_total}/${p.quantity_total}?`)) return;
-    await api.put(`/admin/campaigns/${campaignId}/prizes/${p.id}`, { quantityRemaining: p.quantity_total });
-    load();
-    notify('Estoque resetado.');
-  }
-
   function editPrize(p) {
     setDraft({
       id: p.id,
@@ -92,6 +85,7 @@ export default function PrizesTab({ campaignId, notify }) {
       description: p.description,
       color: p.color,
       quantityTotal: p.quantity_total,
+      quantityRemaining: p.quantity_remaining,
       probabilityWeight: p.probability_weight,
       cityScope: p.city_scope,
       videoUrl: p.video_url,
@@ -188,7 +182,7 @@ export default function PrizesTab({ campaignId, notify }) {
             </div>
             {draft.type === 'prize' && (
               <div className="field">
-                <label>Quantidade disponível (estoque)</label>
+                <label>Quantidade total (estoque)</label>
                 <input
                   type="number"
                   min="0"
@@ -198,6 +192,23 @@ export default function PrizesTab({ campaignId, notify }) {
               </div>
             )}
           </div>
+
+          {draft.type === 'prize' && draft.id && (
+            <div className="form-row">
+              <div className="field">
+                <label>Estoque disponível agora</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={draft.quantityRemaining}
+                  onChange={(e) => setDraft({ ...draft, quantityRemaining: e.target.value })}
+                />
+                <p className="field-hint">
+                  Ajuste aqui pra corrigir o estoque manualmente (ex: voltar pro total depois de testes).
+                </p>
+              </div>
+            </div>
+          )}
 
           {draft.type === 'prize' && (
             <>
@@ -304,9 +315,6 @@ export default function PrizesTab({ campaignId, notify }) {
               </td>
               <td>
                 <button className="btn secondary" onClick={() => editPrize(p)}>Editar</button>{' '}
-                {p.type === 'prize' && p.quantity_remaining < p.quantity_total && (
-                  <button className="btn secondary" onClick={() => resetStock(p)}>Resetar estoque</button>
-                )}{' '}
                 <button className="btn danger" onClick={() => removePrize(p.id)}>Excluir</button>
               </td>
             </tr>
