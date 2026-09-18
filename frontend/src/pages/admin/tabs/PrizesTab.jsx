@@ -62,7 +62,12 @@ export default function PrizesTab({ campaignId, notify }) {
 
   async function saveDraft() {
     if (draft.id) {
-      await api.put(`/admin/campaigns/${campaignId}/prizes/${draft.id}`, draft);
+      // Editing always resets the stock to the full amount typed here,
+      // so admins don't need a separate "reset" action after test spins.
+      await api.put(`/admin/campaigns/${campaignId}/prizes/${draft.id}`, {
+        ...draft,
+        quantityRemaining: draft.quantityTotal,
+      });
     } else {
       await api.post(`/admin/campaigns/${campaignId}/prizes`, draft);
     }
@@ -75,13 +80,6 @@ export default function PrizesTab({ campaignId, notify }) {
     if (!confirm('Remover esta opção da roleta?')) return;
     await api.del(`/admin/campaigns/${campaignId}/prizes/${id}`);
     load();
-  }
-
-  async function resetStock(p) {
-    if (!confirm(`Voltar o estoque de "${p.title}" para ${p.quantity_total}/${p.quantity_total}?`)) return;
-    await api.put(`/admin/campaigns/${campaignId}/prizes/${p.id}`, { quantityRemaining: p.quantity_total });
-    load();
-    notify('Estoque resetado.');
   }
 
   function editPrize(p) {
@@ -195,6 +193,9 @@ export default function PrizesTab({ campaignId, notify }) {
                   value={draft.quantityTotal}
                   onChange={(e) => setDraft({ ...draft, quantityTotal: e.target.value })}
                 />
+                {draft.id && (
+                  <p className="field-hint">Salvar aqui zera as saídas e deixa o estoque cheio de novo.</p>
+                )}
               </div>
             )}
           </div>
@@ -304,9 +305,6 @@ export default function PrizesTab({ campaignId, notify }) {
               </td>
               <td>
                 <button className="btn secondary" onClick={() => editPrize(p)}>Editar</button>{' '}
-                {p.type === 'prize' && p.quantity_remaining < p.quantity_total && (
-                  <button className="btn secondary" onClick={() => resetStock(p)}>Resetar estoque</button>
-                )}{' '}
                 <button className="btn danger" onClick={() => removePrize(p.id)}>Excluir</button>
               </td>
             </tr>
