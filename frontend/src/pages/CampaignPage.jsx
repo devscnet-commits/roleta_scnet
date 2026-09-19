@@ -189,7 +189,7 @@ export default function CampaignPage() {
         )}
 
         <Wheel
-          segments={campaign.segments}
+          segments={drawResult?.segments || campaign.segments}
           spinToId={drawResult?.segmentId}
           spinToken={spinToken}
           onSpinEnd={handleSpinEnd}
