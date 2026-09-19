@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../../api.js';
 
+// SQLite's CURRENT_TIMESTAMP is stored as UTC with no timezone marker
+// ("2026-09-19 12:18:55"). Without a "Z", JS Date parses that as local
+// time instead of UTC, which shows the wrong hour for anyone not on UTC.
+function formatUtcDate(value) {
+  if (!value) return '';
+  const iso = value.includes('T') ? value : `${value.replace(' ', 'T')}Z`;
+  return new Date(iso).toLocaleString('pt-BR');
+}
+
 export default function ParticipantsTab({ campaignId, campaign, notify }) {
   const isAdmin = localStorage.getItem('admin_role') !== 'consultor';
   const customFields = campaign?.formConfig?.customFields || [];
@@ -128,7 +137,7 @@ export default function ParticipantsTab({ campaignId, campaign, notify }) {
                   </div>
                 )}
               </td>
-              <td>{new Date(r.created_at).toLocaleString('pt-BR')}</td>
+              <td>{formatUtcDate(r.created_at)}</td>
               <td>
                 {r.result_type === 'prize' && !r.redeemed && (
                   <button className="btn secondary" onClick={() => redeem(r.id, r.redemption_code)}>Marcar entregue</button>

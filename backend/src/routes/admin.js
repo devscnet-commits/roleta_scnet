@@ -433,6 +433,13 @@ router.get('/campaigns/:id/participants/export.csv', adminOnly, (req, res) => {
     'Data',
   ];
   const csvEscape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  // created_at is stored as UTC ("YYYY-MM-DD HH:MM:SS", no timezone marker);
+  // render it in Brazil local time so the CSV matches what people expect.
+  const formatUtcDate = (value) => {
+    if (!value) return '';
+    const date = new Date(`${value.replace(' ', 'T')}Z`);
+    return date.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  };
   const lines = [header.map(csvEscape).join(';')];
   for (const r of rows) {
     const extraValues = JSON.parse(r.extra_fields_json || '{}');
@@ -447,7 +454,7 @@ router.get('/campaigns/:id/participants/export.csv', adminOnly, (req, res) => {
         r.prize_title,
         r.redemption_code || '',
         r.redeemed_at ? 'Sim' : 'Não',
-        r.created_at,
+        formatUtcDate(r.created_at),
       ]
         .map(csvEscape)
         .join(';')

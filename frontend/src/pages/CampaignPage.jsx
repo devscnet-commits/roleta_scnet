@@ -273,9 +273,7 @@ export default function CampaignPage() {
           <div className="result-modal-card card" onClick={(e) => e.stopPropagation()}>
             <div className={`result-glow ${drawResult.result === 'prize' ? 'win' : 'lose'}`} />
 
-            <div className={`result-icon-badge ${drawResult.result === 'prize' ? 'win' : 'lose'}`}>
-              {drawResult.result === 'prize' ? '🏆' : '🎉'}
-            </div>
+            {drawResult.result === 'prize' && <div className="result-icon-badge win">🏆</div>}
 
             {drawResult.videoUrl && (
               <div className="video-stage">
