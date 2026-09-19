@@ -13,22 +13,29 @@ router.get('/campaigns/:slug', (req, res) => {
     .get(req.params.slug);
   if (!campaign) return res.status(404).json({ error: 'campaign_not_found' });
 
-  const prizes = db
-    .prepare(
-      `SELECT id, type, title, color, order_index FROM prizes
-       WHERE campaign_id = ? AND active = 1 ORDER BY order_index ASC`
-    )
-    .all(campaign.id);
-
   res.json({
     slug: campaign.slug,
     name: campaign.name,
     colors: JSON.parse(campaign.colors_json),
     texts: JSON.parse(campaign.texts_json),
     formConfig: JSON.parse(campaign.form_config_json),
-    segments: prizes.map((p) => ({ id: p.id, title: p.title, color: p.color, type: p.type })),
+    segments: getWheelSegments(campaign.id),
   });
 });
+
+// Only wedges the draw could actually land on: active, and (for prizes)
+// still in stock. Matches the candidate pool in engine/draw.js exactly, so
+// the wheel never shows a slice it can no longer choose.
+function getWheelSegments(campaignId) {
+  const prizes = db
+    .prepare(
+      `SELECT id, type, title, color, order_index FROM prizes
+       WHERE campaign_id = ? AND active = 1 AND (type = 'no_prize' OR quantity_remaining > 0)
+       ORDER BY order_index ASC`
+    )
+    .all(campaignId);
+  return prizes.map((p) => ({ id: p.id, title: p.title, color: p.color, type: p.type }));
+}
 
 router.post('/campaigns/:slug/participate', (req, res) => {
   const campaign = db
@@ -84,6 +91,12 @@ router.post('/campaigns/:slug/participate', (req, res) => {
   }
   const cityEligible = cityRow ? !!cityRow.eligible : !!campaign.default_city_eligible;
 
+  // Snapshot the wheel exactly as it stood the instant before the draw, so
+  // the segment the participant sees spin to is guaranteed to be the same
+  // list the draw itself picked from (not whatever the wheel happened to
+  // load earlier in the session, which the admin may have changed since).
+  const wheelSegments = getWheelSegments(campaign.id);
+
   const chosen = runDrawTx({
     campaignId: campaign.id,
     cityId: cityRow ? cityRow.id : null,
@@ -127,6 +140,7 @@ router.post('/campaigns/:slug/participate', (req, res) => {
     status: 'ok',
     result: chosen.type,
     segmentId: chosen.id,
+    segments: wheelSegments,
     videoUrl: chosen.video_url || null,
     resultMessage: chosen.type === 'prize' ? '' : chosen.description || texts.loseSubtitle || '',
     prize:

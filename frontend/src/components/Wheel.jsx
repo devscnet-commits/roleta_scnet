@@ -140,7 +140,14 @@ export default function Wheel({ segments, spinToId, spinToken, onSpinEnd, onSpin
   useEffect(() => {
     if (spinToken === 0 || spinToId == null) return;
     const idx = segments.findIndex((s) => s.id === spinToId);
-    if (idx === -1) return;
+    if (idx === -1) {
+      // Should never happen (the caller passes a fresh segments snapshot
+      // taken at the same moment as the draw), but resolve instead of
+      // spinning forever if it ever does, so the result isn't lost.
+      console.error('Wheel: spinToId not found in segments', spinToId, segments);
+      onSpinEnd && onSpinEnd();
+      return;
+    }
     const sliceAngle = 360 / segments.length;
     const targetCenter = idx * sliceAngle + sliceAngle / 2;
     const fullSpins = 5 * 360;
